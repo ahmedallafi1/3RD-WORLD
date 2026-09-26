@@ -135,3 +135,15 @@ html.scroll-locked{overflow:hidden}
   .route-loading span{animation:none}
   .product-silhouette{transition:none}
 }
+
+.passport-auth{display:grid;gap:20px;margin-top:28px}
+.passport-auth-switch{display:flex;gap:18px}
+.passport-auth-switch button{border:0;background:transparent;color:var(--muted);padding:0 0 4px;cursor:pointer}
+.passport-auth-switch button.active{color:inherit;border-bottom:1px solid currentColor}
+.passport-auth form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.passport-auth input{height:48px;border:1px solid rgba(244,243,239,.22);background:transparent;color:inherit;padding:0 12px;outline:none}
+.passport-auth form .primary-button,.passport-auth form p{grid-column:1/-1}
+.passport-stats{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);margin:24px 0}
+.passport-stats>div{min-height:100px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--line)}
+.passport-stats>div:last-child{border-right:0}.passport-stats strong{font-size:30px;font-weight:400}
+@media(max-width:600px){.passport-auth form{grid-template-columns:1fr}.passport-auth form>*{grid-column:1!important}.passport-stats{grid-template-columns:1fr}.passport-stats>div{border-right:0;border-bottom:1px solid var(--line)}.passport-stats>div:last-child{border-bottom:0}}
