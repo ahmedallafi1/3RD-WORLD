@@ -1,0 +1,2 @@
+export const metadata={title:"Passport"};
+export default function PassportPage(){return <main className="passport-page"><div className="passport-card"><span>3RD WORLD</span><h1>PASSPORT</h1><p>000001</p><div className="passport-stamp">WORLD 001</div></div><section className="passport-content"><h2>YOUR WORLD</h2><div className="passport-links"><button>ORDERS</button><button>SAVED PIECES</button><button>WORLD ACCESS</button><button>ADDRESSES</button></div><p className="muted">AUTHENTICATION AND LIVE CUSTOMER DATA ARRIVE IN PHASE 03.</p></section></main>}

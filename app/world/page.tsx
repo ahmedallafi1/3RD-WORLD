@@ -1,0 +1,3 @@
+import Link from "next/link";
+export const metadata={title:"World"};
+export default function WorldPage(){return <main className="editorial-page"><section className="editorial-hero"><span>3RD WORLD / CULTURE</span><h1>THE WORLD IS<br/>BIGGER THAN CLOTHES.</h1></section><section className="editorial-grid"><div className="editorial-block"><span>PEOPLE</span><strong>01</strong></div><div className="editorial-block"><span>CITIES</span><strong>02</strong></div><div className="editorial-block"><span>FILMS</span><strong>03</strong></div><div className="editorial-block"><span>SOUND</span><strong>04</strong></div></section><div className="editorial-end"><Link href="/world/001" className="underlined-link">ENTER WORLD 001</Link></div></main>}
