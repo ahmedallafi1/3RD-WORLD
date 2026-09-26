@@ -15,6 +15,22 @@ function base32(buffer){
   return out;
 }
 
+function encryptionKey(){
+  const raw=process.env.SECURITY_ENCRYPTION_KEY;
+  if(!raw)throw new Error("SECURITY_ENCRYPTION_KEY is required.");
+  const decoded=Buffer.from(raw,"base64");
+  if(decoded.length!==32)throw new Error("SECURITY_ENCRYPTION_KEY must be a base64-encoded 32-byte key.");
+  return decoded;
+}
+
+function encryptSecret(value){
+  const iv=crypto.randomBytes(12);
+  const cipher=crypto.createCipheriv("aes-256-gcm",encryptionKey(),iv);
+  const encrypted=Buffer.concat([cipher.update(value,"utf8"),cipher.final()]);
+  const tag=cipher.getAuthTag();
+  return ["v1",iv.toString("base64url"),tag.toString("base64url"),encrypted.toString("base64url")].join(".");
+}
+
 const [, , emailArg, actionArg="enable"] = process.argv;
 const email=emailArg?.trim().toLowerCase();
 const action=actionArg.toLowerCase();
@@ -46,9 +62,10 @@ if(action==="disable"){
 }
 
 const secret=base32(crypto.randomBytes(20));
+const encryptedSecret=encryptSecret(secret);
 await pool.query(
   "UPDATE admin_users SET totp_secret=$2,totp_enabled=true,updated_at=now() WHERE id=$1",
-  [user.rows[0].id,secret],
+  [user.rows[0].id,encryptedSecret],
 );
 await pool.query("DELETE FROM admin_sessions WHERE admin_user_id=$1",[user.rows[0].id]);
 await pool.end();
