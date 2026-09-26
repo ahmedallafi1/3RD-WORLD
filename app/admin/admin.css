@@ -80,3 +80,23 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-drop-products label small{color:var(--admin-muted)}
 .admin-drop-products>div{display:flex;gap:10px}
 @media(max-width:850px){.admin-two-col{grid-template-columns:1fr}}
+
+.admin-login-back{border:0;background:transparent;color:var(--admin-muted);cursor:pointer;justify-self:start;padding:0;border-bottom:1px solid currentColor}
+.admin-security-card{border:1px solid var(--admin-line);padding:24px;display:grid;gap:18px;max-width:760px}
+.admin-security-card>span,.admin-mfa-secret>span{font-size:10px;color:var(--admin-muted)}
+.admin-security-card h2{font-size:clamp(38px,6vw,72px);letter-spacing:-.06em;margin:0}
+.admin-security-card p{color:var(--admin-muted);line-height:1.5;max-width:60ch}
+.admin-mfa-secret{display:grid;gap:8px;border:1px solid var(--admin-line);padding:16px;overflow-wrap:anywhere}
+.admin-mfa-secret code{font-size:18px;letter-spacing:.08em}
+.admin-mfa-secret small{color:var(--admin-muted)}
+.admin-mfa-uri{border-top:1px solid var(--admin-line);border-bottom:1px solid var(--admin-line);padding:12px 0}
+.admin-mfa-uri summary{cursor:pointer}.admin-mfa-uri code{display:block;margin-top:12px;overflow-wrap:anywhere;color:var(--admin-muted)}
+.admin-security-inline{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.admin-security-inline input{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:13px}
+.admin-recovery-codes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.admin-recovery-codes code{border:1px solid var(--admin-line);padding:10px;text-align:center;letter-spacing:.08em}
+.admin-security-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:28px}
+.admin-security-notes article{border:1px solid var(--admin-line);padding:18px;display:grid;gap:12px}
+.admin-security-notes span{font-size:10px;color:var(--admin-muted)}
+.admin-security-notes strong{font-size:28px;font-weight:400}.admin-security-notes p{color:var(--admin-muted);line-height:1.45}
+@media(max-width:650px){.admin-security-inline,.admin-security-notes,.admin-recovery-codes{grid-template-columns:1fr}}
