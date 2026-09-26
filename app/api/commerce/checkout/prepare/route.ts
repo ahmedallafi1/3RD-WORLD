@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {getCustomerUser} from "@/lib/auth/session";
 import {prepareCheckout,type CheckoutLineInput} from "@/lib/commerce/prepare-checkout";
 import type {ShippingAddress} from "@/lib/shipping/easypost";
+import {assertRateLimit,normalizedIdentity,requestFingerprint} from "@/lib/security/rate-limit";
 
 export async function POST(request:NextRequest){
   if(!process.env.DATABASE_URL){
@@ -17,7 +18,7 @@ export async function POST(request:NextRequest){
       }
     | null;
   const customer=await getCustomerUser();
-  const email=body?.email??customer?.email;
+  const email=normalizedIdentity(body?.email??customer?.email);
   const address=body?.shippingAddress;
 
   if(
@@ -38,6 +39,14 @@ export async function POST(request:NextRequest){
   }
 
   try{
+    await assertRateLimit({
+      scope:"checkout-prepare",
+      fingerprint:requestFingerprint(request.headers),
+      identity:email,
+      limit:30,
+      windowSeconds:600,
+    });
+
     const data=await prepareCheckout({
       email,
       countryCode:body.countryCode,
@@ -48,9 +57,14 @@ export async function POST(request:NextRequest){
     });
     return NextResponse.json({data},{status:201});
   }catch(error){
+    const message=error instanceof Error?error.message:"Unable to prepare checkout.";
+    const rateLimited=message.startsWith("Too many attempts");
     return NextResponse.json(
-      {error:error instanceof Error?error.message:"Unable to prepare checkout."},
-      {status:409},
+      {error:message},
+      {
+        status:rateLimited?429:409,
+        headers:rateLimited?{"Retry-After":"600"}:undefined,
+      },
     );
   }
 }
