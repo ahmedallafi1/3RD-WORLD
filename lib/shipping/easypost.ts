@@ -116,6 +116,11 @@ export async function quoteEasyPost(args:{
   };
 
   if(isInternational){
+    const incomplete=args.items.find(item=>!item.hsCode||!item.countryOfOrigin);
+    if(incomplete){
+      throw new Error("International checkout requires HS code and country of origin for every item.");
+    }
+
     shipment.customs_info={
       customs_certify:true,
       customs_signer:process.env.SHIP_FROM_NAME??"3RD WORLD",
@@ -126,8 +131,8 @@ export async function quoteEasyPost(args:{
         quantity:item.quantity,
         value:dollars(item.valueAmount),
         weight:gramsToOunces(item.weightGrams),
-        origin_country:item.countryOfOrigin??from.country,
-        hs_tariff_number:item.hsCode??undefined,
+        origin_country:item.countryOfOrigin,
+        hs_tariff_number:item.hsCode,
       })),
     };
   }
