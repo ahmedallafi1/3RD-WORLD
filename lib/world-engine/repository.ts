@@ -1,6 +1,7 @@
 import {isDatabaseConfigured,query} from "@/lib/db";
 import {products as fallbackProducts,type Product} from "@/lib/catalog";
 import type {DropRecord,WorldRecord} from "@/lib/world-engine/types";
+import {attachProductMedia} from "@/lib/media/storefront";
 
 export async function listArchiveWorlds():Promise<WorldRecord[]>{
   if(!isDatabaseConfigured()){
@@ -147,7 +148,7 @@ export async function getWorldProducts(worldId:string):Promise<Product[]>{
       fit:"See size guide",tone,status:"AVAILABLE",
     });
   }
-  return [...grouped.values()];
+  return attachProductMedia([...grouped.values()]);
 }
 
 export async function listWorldCampaigns(worldId:string){
@@ -250,5 +251,5 @@ export async function getDropProducts(dropId:string):Promise<Product[]>{
       fit:"See size guide",tone,status:"AVAILABLE",
     });
   }
-  return [...grouped.values()];
+  return attachProductMedia([...grouped.values()]);
 }
