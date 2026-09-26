@@ -1,0 +1,128 @@
+{
+  "world": "WORLD 001",
+  "products": [
+    {
+      "slug": "world-zip",
+      "name": "WORLD ZIP",
+      "category": "OUTERWEAR",
+      "description": "Heavyweight full-zip hoodie built as a core 3RD WORLD uniform piece.",
+      "color": "BURGUNDY",
+      "priceAmount": 14500,
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "weightGrams": 900
+    },
+    {
+      "slug": "globe-tee",
+      "name": "GLOBE TEE",
+      "category": "TOPS",
+      "description": "Washed heavyweight tee with the 3RD WORLD globe identity.",
+      "color": "WASHED BLACK",
+      "priceAmount": 6800,
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "weightGrams": 360
+    },
+    {
+      "slug": "world-hoodie",
+      "name": "WORLD HOODIE",
+      "category": "OUTERWEAR",
+      "description": "Pullover hoodie designed around a clean front and globe-led back graphic.",
+      "color": "BONE",
+      "priceAmount": 13200,
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "weightGrams": 900
+    },
+    {
+      "slug": "globe-cap",
+      "name": "GLOBE CAP",
+      "category": "ACCESSORIES",
+      "description": "Low-profile cap carrying the globe mark.",
+      "color": "BLACK",
+      "priceAmount": 5200,
+      "sizes": [
+        "OS"
+      ],
+      "weightGrams": 220
+    },
+    {
+      "slug": "world-sweatpant",
+      "name": "WORLD SWEATPANT",
+      "category": "BOTTOMS",
+      "description": "Heavyweight sweatpant cut to match the WORLD ZIP.",
+      "color": "BURGUNDY",
+      "priceAmount": 11800,
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "weightGrams": 720
+    },
+    {
+      "slug": "3rd-world-tee",
+      "name": "3RD WORLD TEE",
+      "category": "TOPS",
+      "description": "Clean front mark with a larger globe treatment on the back.",
+      "color": "BONE",
+      "priceAmount": 7200,
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "weightGrams": 360
+    },
+    {
+      "slug": "world-track-pant",
+      "name": "WORLD TRACK PANT",
+      "category": "BOTTOMS",
+      "description": "Technical track pant with restrained 3RD WORLD branding.",
+      "color": "NAVY",
+      "priceAmount": 12400,
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "weightGrams": 520
+    },
+    {
+      "slug": "globe-beanie",
+      "name": "GLOBE BEANIE",
+      "category": "ACCESSORIES",
+      "description": "Rib knit beanie with the globe mark.",
+      "color": "GREY",
+      "priceAmount": 4800,
+      "sizes": [
+        "OS"
+      ],
+      "weightGrams": 180,
+      "status": "DRAFT"
+    }
+  ]
+}
