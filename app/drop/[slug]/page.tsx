@@ -35,6 +35,18 @@ export default async function DropDetailPage({
     sessionToken,
   });
 
+  if(access.phase==="CLOSED"){
+    return (
+      <main className="drop-screen drop-gate-screen">
+        <GlobeMark size={92}/>
+        <span>{drop.worldCode} / {drop.name}</span>
+        <h1>WORLD CLOSED.</h1>
+        <p>THIS RELEASE HAS MOVED TO THE ARCHIVE.</p>
+        <Link href={"/world/"+drop.worldSlug} className="underlined-link">VIEW WORLD</Link>
+      </main>
+    );
+  }
+
   if(!access.granted){
     return (
       <main className="drop-screen drop-gate-screen">
