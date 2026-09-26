@@ -1,5 +1,5 @@
 import { query, withTransaction } from "@/lib/db";
-import { createCart, setCartLineQuantity } from "@/lib/commerce/repositories/carts";
+import { createCart, getCart, setCartLineQuantity } from "@/lib/commerce/repositories/carts";
 import { createPendingOrderFromCart } from "@/lib/commerce/repositories/orders-db";
 import { quoteCheckout } from "@/lib/commerce/checkout-quotes";
 import { applyCheckoutQuoteToOrder } from "@/lib/commerce/checkout-order";
@@ -102,8 +102,9 @@ export async function prepareCheckout(args:{
     });
 
     await applyCheckoutQuoteToOrder(order.id,quote);
+    const pricedCart=await getCart(cart.id);
 
-    return {cartId:cart.id,order,quote};
+    return {cartId:cart.id,order,quote,pricedLines:pricedCart?.lines??[]};
   }catch(error){
     await withTransaction(async client=>{
       const reservations=await client.query<{id:string;variant_id:string;location_id:string;quantity:number}>(
