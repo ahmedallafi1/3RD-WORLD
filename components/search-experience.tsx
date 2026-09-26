@@ -2,18 +2,18 @@
 
 import {useMemo,useState} from "react";
 import {ProductCard} from "@/components/storefront";
-import {products} from "@/lib/catalog";
+import {products as fallbackProducts,type Product} from "@/lib/catalog";
 
-export function SearchExperience(){
+export function SearchExperience({items=fallbackProducts}:{items?:Product[]}){
   const [query,setQuery]=useState("");
   const normalized=query.trim().toLowerCase();
   const results=useMemo(()=>{
     if(!normalized)return [];
-    return products.filter(product=>
+    return items.filter(product=>
       [product.name,product.color,product.category,product.world]
         .some(value=>value.toLowerCase().includes(normalized))
     );
-  },[normalized]);
+  },[normalized,items]);
 
   return (
     <main className="search-page">

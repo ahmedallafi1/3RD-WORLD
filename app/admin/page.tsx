@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getAdminOverview } from "@/lib/commerce/admin-data";
+import { requireAdminUser } from "@/lib/auth/session";
 
-export default function AdminOverviewPage() {
-  const overview = getAdminOverview();
+export default async function AdminOverviewPage() {
+  await requireAdminUser();
+  const overview = await getAdminOverview();
   const metrics = [
     ["PRODUCTS", overview.products],
     ["ACTIVE VARIANTS", overview.activeVariants],
@@ -16,7 +18,7 @@ export default function AdminOverviewPage() {
     <main>
       <div className="admin-page-head">
         <div><p>PHASE 03</p><h1>OVERVIEW</h1></div>
-        <p>COMMERCE CORE / PREVIEW DATA</p>
+        <p>LIVE COMMERCE CORE</p>
       </div>
       <section className="admin-metrics">
         {metrics.map(([label, value]) => (
@@ -28,12 +30,12 @@ export default function AdminOverviewPage() {
       <section className="admin-card-grid">
         <article className="admin-card">
           <div><p>CATALOG</p><h2>PRODUCTS + VARIANTS</h2></div>
-          <p>Canonical SKUs, sizes, colorways and market-ready product data.</p>
+          <p>Create, update and archive catalog pieces without changing storefront code.</p>
           <Link className="admin-link" href="/admin/products">OPEN PRODUCTS</Link>
         </article>
         <article className="admin-card">
           <div><p>OPERATIONS</p><h2>INVENTORY LOCKS</h2></div>
-          <p>Reservation-first inventory architecture built for high-demand drops.</p>
+          <p>Transactional reservations prevent overselling during high-demand releases.</p>
           <Link className="admin-link" href="/admin/inventory">OPEN INVENTORY</Link>
         </article>
       </section>

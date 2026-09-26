@@ -1,9 +1,10 @@
 import Link from "next/link";
 import {AccessForm} from "@/components/access-form";
 import {Footer,GlobeMark,ProductCard} from "@/components/storefront";
-import {products} from "@/lib/catalog";
+import {getStorefrontProducts} from "@/lib/commerce/storefront-catalog";
 
-export default function HomePage(){
+export default async function HomePage(){
+  const products=await getStorefrontProducts();
   const featured=products.filter(product=>product.status!=="COMING SOON").slice(0,4);
 
   return (
