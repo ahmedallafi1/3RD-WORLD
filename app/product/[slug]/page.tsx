@@ -13,7 +13,7 @@ import {isProductSaved} from "@/lib/world-engine/saved";
 export const dynamic="force-dynamic";
 
 export function generateStaticParams(){
-  return fallbackProducts.map(product=>({slug:displayProduct.slug}));
+  return fallbackProducts.map(product=>({slug:product.slug}));
 }
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
@@ -28,7 +28,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
 
   const product=await getStorefrontProductRaw(slug);
   if(!product)return {};
-  return {title:displayProduct.name,description:displayProduct.description};
+  return {title:product.name,description:product.description};
 }
 
 export default async function ProductPage({params}:{params:Promise<{slug:string}>}){
@@ -54,7 +54,6 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
   }
 
   const displayProduct=releaseClosed?{...product,status:"SOLD OUT" as const}:product;
-
   const saved=customer&&process.env.DATABASE_URL
     ? await isProductSaved(customer.id,slug)
     : false;
@@ -86,9 +85,9 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
           initialSaved={Boolean(saved)}
         />
 
-        <AddToBag product={product}/>
+        <AddToBag product={displayProduct}/>
 
-        {displayProduct.status==="SOLD OUT"&&(
+        {displayProduct.status==="SOLD OUT"&&!releaseClosed&&(
           <RestockForm slug={displayProduct.slug} defaultEmail={customer?.email??""}/>
         )}
 
