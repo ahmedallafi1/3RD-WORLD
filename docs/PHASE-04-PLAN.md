@@ -4,51 +4,40 @@
 Turn the Phase 03 commerce core into a real global checkout without giving up the custom 3RD WORLD interface.
 
 ## Architecture
-3RD WORLD owns the cart, order, inventory and checkout state. Payment providers only tokenize and process payment credentials.
+3RD WORLD owns cart state, inventory, orders, markets and the checkout experience. Payment and logistics providers remain replaceable adapters.
 
 ### Payment layer
-- provider-neutral PaymentProvider interface
-- Stripe is the first live adapter
-- automatic payment methods are requested from the provider
-- raw card numbers and CVV never enter 3RD WORLD servers
-- payment success is webhook-driven, not trusted from browser redirects
-- payment webhook IDs are idempotently stored
-- inventory remains reserved while payment is pending
-- inventory is consumed only after a verified successful payment event
+- provider-neutral payment contract
+- Stripe first adapter
+- dynamic payment methods
+- branded Payment Element
+- eligible express wallets
+- signed, idempotent webhooks
+- refund orchestration
+- no raw card storage
 
-### Global checkout layer
-- markets table
-- country to market resolution
-- market currency metadata
-- free-shipping thresholds
-- standard shipping rules
-- quote snapshots
-- explicit tax / duty status
-- no fake tax, duty or FX estimates
+### Global layer
+- country-to-market resolution
+- explicit market prices
+- optional live FX conversion
+- carrier-rate integration
+- tax calculation
+- duties / landed-cost support
+- customs validation
+- quote persistence
+- safe live-launch readiness gates
 
-## Phase 04 build order
-1. Payment orchestration + webhook safety — STARTED
-2. Global market / quote layer — STARTED
-3. Branded Payment Element UI
-4. Dynamic payment method presentation
-5. Shipping carrier adapter
-6. Tax / duties adapter
-7. FX / local-currency conversion
-8. Refund orchestration
-9. Payment + checkout admin controls
-10. End-to-end payment QA
+## Completed build order
+1. Payment orchestration + webhook safety — COMPLETE
+2. Global market / quote layer — COMPLETE
+3. Branded Payment Element UI — COMPLETE
+4. Dynamic payment method presentation — COMPLETE
+5. Shipping carrier adapter — COMPLETE
+6. Tax / duties adapters — COMPLETE
+7. FX / local-currency conversion — COMPLETE
+8. Refund orchestration — COMPLETE
+9. Payment + checkout admin controls — COMPLETE
+10. Production build verification — COMPLETE on implementation branch
 
-## Current first slice
-- Stripe payment-intent adapter over direct HTTPS
-- signed Stripe webhook verification
-- payment attempts + event persistence
-- idempotent webhook handling
-- payment failure / cancellation states
-- reservation-safe order flow
-- allocation only after verified payment success
-- US / CA / UK / EU / AE / AU market foundations
-- checkout quote persistence
-- global shipping fallback without inventing exchange rates
-
-## Important launch boundary
-The checkout must remain non-live until tax/duty and final shipping configuration are approved for the markets being sold into.
+## Launch principle
+If a provider required for the selected market is not configured, production checkout fails closed instead of inventing a tax, duty, FX or shipping value.
