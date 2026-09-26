@@ -58,3 +58,8 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-refund-form>div{display:flex;gap:10px}.admin-refund-form small{color:#8a1e1e}
 @media(max-width:1050px){.commerce-readiness{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.commerce-readiness{grid-template-columns:1fr}}
+
+.admin-market-form{display:grid;gap:8px;min-width:240px}
+.admin-market-form label{display:grid;gap:4px;font-size:9px;color:var(--admin-muted)}
+.admin-market-form input,.admin-market-form select{width:100%;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
+.admin-market-form>div{display:flex;gap:10px}.admin-market-form small{color:#8a1e1e}
