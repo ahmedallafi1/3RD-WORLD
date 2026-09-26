@@ -107,3 +107,37 @@ export async function createStripeTaxTransaction(args:{
   }
   return String(payload?.id??"");
 }
+
+
+export async function reverseStripeTaxTransaction(args:{
+  originalTransactionId:string;
+  reference:string;
+  amount?:number;
+  full:boolean;
+}){
+  const params=new URLSearchParams();
+  params.set("mode",args.full?"full":"partial");
+  params.set("original_transaction",args.originalTransactionId);
+  params.set("reference",args.reference);
+  if(!args.full){
+    if(!args.amount||args.amount<=0)throw new Error("Partial tax reversal requires a positive amount.");
+    params.set("flat_amount",String(-args.amount));
+  }
+
+  const response=await fetch("https://api.stripe.com/v1/tax/transactions/create_reversal",{
+    method:"POST",
+    headers:{
+      authorization:`Bearer ${requireSecret()}`,
+      "content-type":"application/x-www-form-urlencoded",
+    },
+    body:params.toString(),
+    cache:"no-store",
+  });
+
+  const payload=await response.json().catch(()=>null) as Record<string,unknown>|null;
+  if(!response.ok){
+    const error=(payload?.error as Record<string,unknown>|undefined)?.message;
+    throw new Error(typeof error==="string"?error:"Stripe Tax reversal failed.");
+  }
+  return String(payload?.id??"");
+}
