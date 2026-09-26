@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { useStorefront } from "@/components/storefront-provider";
 
 const primary = [
@@ -13,12 +12,7 @@ const primary = [
 ] as const;
 
 export function SiteMenu() {
-  const pathname = usePathname();
   const { menuOpen, setMenuOpen } = useStorefront();
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname, setMenuOpen]);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -41,7 +35,7 @@ export function SiteMenu() {
 
       <nav className="site-menu__nav" aria-label="Primary navigation">
         {primary.map(([href, label]) => (
-          <Link href={href} key={href}>
+          <Link href={href} key={href} onClick={() => setMenuOpen(false)}>
             {label}
           </Link>
         ))}
@@ -49,8 +43,8 @@ export function SiteMenu() {
 
       <div className="site-menu__utility">
         <div>
-          <Link href="/search">SEARCH</Link>
-          <Link href="/passport">PASSPORT</Link>
+          <Link href="/search" onClick={() => setMenuOpen(false)}>SEARCH</Link>
+          <Link href="/passport" onClick={() => setMenuOpen(false)}>PASSPORT</Link>
         </div>
         <div>
           <span>INSTAGRAM</span>
