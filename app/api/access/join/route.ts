@@ -10,6 +10,7 @@ export async function POST(request:NextRequest){
 
   const body=await request.json().catch(()=>null) as {email?:string;source?:string}|null;
   const email=normalizedIdentity(body?.email);
+  const source=body?.source??"site";
   if(!email||email.length>320)return NextResponse.json({error:"Email is required."},{status:400});
   const customer=await getCustomerUser();
 
@@ -25,7 +26,7 @@ export async function POST(request:NextRequest){
       email,
       customerId:customer?.id,
       type:"WORLD",
-      source:body.source??"site",
+      source,
     });
     return NextResponse.json({data});
   }catch(error){
