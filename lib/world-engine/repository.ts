@@ -27,7 +27,19 @@ export async function listArchiveWorlds():Promise<WorldRecord[]>{
     `SELECT id,code,title,slug,status,year,tagline,description,accent_color,launch_at,close_at
      FROM worlds
      WHERE public_archive=true
-       AND status IN ('LIVE','CLOSED','ARCHIVED')
+       AND (
+         status IN ('CLOSED','ARCHIVED')
+         OR (
+           status='LIVE'
+           AND NOT EXISTS (
+             SELECT 1 FROM drops d
+             WHERE d.world_id=worlds.id
+               AND d.status='LIVE'
+               AND d.access_mode<>'PUBLIC'
+               AND (d.closes_at IS NULL OR d.closes_at>now())
+           )
+         )
+       )
      ORDER BY COALESCE(launch_at,created_at) DESC`
   );
 
@@ -58,7 +70,23 @@ export async function getWorld(slug:string):Promise<WorldRecord|null>{
     launch_at:Date|null;close_at:Date|null;
   }>(
     `SELECT id,code,title,slug,status,year,tagline,description,accent_color,launch_at,close_at
-     FROM worlds WHERE slug=$1 LIMIT 1`,
+     FROM worlds
+     WHERE slug=$1
+       AND public_archive=true
+       AND (
+         status IN ('CLOSED','ARCHIVED')
+         OR (
+           status='LIVE'
+           AND NOT EXISTS (
+             SELECT 1 FROM drops d
+             WHERE d.world_id=worlds.id
+               AND d.status='LIVE'
+               AND d.access_mode<>'PUBLIC'
+               AND (d.closes_at IS NULL OR d.closes_at>now())
+           )
+         )
+       )
+     LIMIT 1`,
     [slug],
   );
   const row=result.rows[0];
@@ -82,6 +110,20 @@ export async function getWorldProducts(worldId:string):Promise<Product[]>{
      JOIN worlds w ON w.id=p.world_id
      JOIN variants v ON v.product_id=p.id AND v.active=true
      WHERE p.world_id=$1 AND p.status='ACTIVE'
+       AND NOT EXISTS (
+         SELECT 1
+         FROM drop_products dp
+         JOIN drops d ON d.id=dp.drop_id
+         WHERE dp.product_id=p.id
+           AND d.status IN ('DRAFT','SCHEDULED','LIVE')
+           AND (d.closes_at IS NULL OR d.closes_at>now())
+           AND NOT (
+             d.status='LIVE'
+             AND d.access_mode='PUBLIC'
+             AND (d.opens_at IS NULL OR d.opens_at<=now())
+             AND (d.closes_at IS NULL OR d.closes_at>now())
+           )
+       )
      ORDER BY p.created_at,v.created_at`,
     [worldId],
   );
