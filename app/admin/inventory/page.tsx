@@ -1,5 +1,6 @@
 import { requireAdminUser } from "@/lib/auth/session";
 import { listInventoryRows } from "@/lib/commerce/admin-data";
+import { AdminInventoryAdjustForm } from "@/components/admin-inventory-adjust-form";
 
 export default async function AdminInventoryPage() {
   await requireAdminUser(["OWNER","ADMIN","OPERATIONS"]);
@@ -12,7 +13,7 @@ export default async function AdminInventoryPage() {
         <p>{rows.length} INVENTORY POSITIONS</p>
       </div>
       <table className="admin-table">
-        <thead><tr><th>SKU</th><th>LOCATION</th><th>ON HAND</th><th>RESERVED</th><th>AVAILABLE</th></tr></thead>
+        <thead><tr><th>SKU</th><th>LOCATION</th><th>ON HAND</th><th>RESERVED</th><th>AVAILABLE</th><th>ACTION</th></tr></thead>
         <tbody>
           {rows.map(row => (
             <tr key={row.sku+"-"+row.location}>
@@ -21,6 +22,7 @@ export default async function AdminInventoryPage() {
               <td>{row.onHand}</td>
               <td>{row.reserved}</td>
               <td>{row.available}</td>
+              <td><AdminInventoryAdjustForm variantId={row.variantId} locationId={row.locationId} sku={row.sku}/></td>
             </tr>
           ))}
         </tbody>
