@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
+import {verifyTotp} from "@/lib/auth/totp";
+import {decryptSecret} from "@/lib/security/secrets";
 import {
   ADMIN_COOKIE,
   createAdminSession,
   destroyAdminSession,
 } from "@/lib/auth/session";
+import {
+  assertAuthRateLimit,
+  recordAuthAttempt,
+} from "@/lib/security/auth-rate-limit";
+import {requestSessionMetadata} from "@/lib/security/request";
 
 export async function POST(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
@@ -13,7 +20,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null) as
-    | { email?: string; password?: string }
+    | { email?: string; password?: string; code?:string }
     | null;
 
   const email = body?.email?.trim().toLowerCase();
@@ -22,12 +29,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
   }
 
+  let rate;
+  try{
+    rate=await assertAuthRateLimit({request,email,scope:"ADMIN"});
+  }catch(error){
+    return NextResponse.json(
+      {error:error instanceof Error?error.message:"Too many attempts."},
+      {status:429},
+    );
+  }
+
   const result = await query<{
     id: string;
     password_hash: string;
     active: boolean;
+    totp_secret:string|null;
+    totp_enabled:boolean;
   }>(
-    `SELECT id, password_hash, active
+    `SELECT id, password_hash, active, totp_secret, totp_enabled
      FROM admin_users
      WHERE email = $1
      LIMIT 1`,
@@ -35,11 +54,43 @@ export async function POST(request: NextRequest) {
   );
 
   const user = result.rows[0];
-  if (!user || !user.active || !(await verifyPassword(password, user.password_hash))) {
+  const passwordValid=Boolean(
+    user &&
+    user.active &&
+    await verifyPassword(password,user.password_hash)
+  );
+
+  if(!passwordValid){
+    await recordAuthAttempt({...rate,scope:"ADMIN",success:false});
     return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
   }
 
-  const session = await createAdminSession(user.id);
+  if(user.totp_enabled){
+    if(!body?.code){
+      return NextResponse.json(
+        {error:"Two-factor code required.",code:"TWO_FACTOR_REQUIRED"},
+        {status:401},
+      );
+    }
+    let totpSecret="";
+    try{
+      totpSecret=user.totp_secret?decryptSecret(user.totp_secret):"";
+    }catch{
+      return NextResponse.json({error:"Admin two-factor configuration is invalid."},{status:500});
+    }
+    if(!totpSecret||!verifyTotp(totpSecret,body.code)){
+      await recordAuthAttempt({...rate,scope:"ADMIN",success:false});
+      return NextResponse.json({error:"Invalid two-factor code."},{status:401});
+    }
+  }
+
+  await recordAuthAttempt({...rate,scope:"ADMIN",success:true});
+  await query(
+    "UPDATE admin_users SET last_login_at=now(),updated_at=now() WHERE id=$1",
+    [user.id],
+  );
+
+  const session = await createAdminSession(user.id,requestSessionMetadata(request));
   const response = NextResponse.json({ ok: true });
   response.cookies.set(ADMIN_COOKIE, session.token, {
     httpOnly: true,
