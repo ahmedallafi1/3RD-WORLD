@@ -306,16 +306,42 @@ export function SiteHeader(){
 }
 
 export function ProductCard({product,index}:{product:Product;index:number}){
+  const images=product.media?.filter(item=>item.kind==="IMAGE")??[];
+  const cover=images.find(item=>item.role==="COVER")??images[0];
+  const hover=images.find(item=>item!==cover);
+
   return (
     <article className="product-card">
       <Link
         href={"/product/"+product.slug}
-        className={"product-visual tone-"+product.tone}
+        className={"product-visual tone-"+product.tone+(cover?" has-media":"")}
         aria-label={product.name+", "+product.color+", "+formatMoney(product.price)}
       >
+        {cover?(
+          <>
+            <img
+              className="product-card-image primary"
+              src={cover.src}
+              alt={cover.alt||product.name+" in "+product.color}
+              loading={index<4?"eager":"lazy"}
+              decoding="async"
+            />
+            {hover&&(
+              <img
+                className="product-card-image hover"
+                src={hover.src}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+          </>
+        ):(
+          <span className="product-fallback-mark"><GlobeMark size={62}/></span>
+        )}
         <span className="product-index">{String(index+1).padStart(2,"0")}</span>
         <span className="product-visual-label">{product.world}</span>
-        <span className="product-silhouette" aria-hidden="true"/>
         {product.status&&<span className="product-status">{product.status}</span>}
       </Link>
       <div className="product-meta">
