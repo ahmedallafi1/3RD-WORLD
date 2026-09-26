@@ -1,5 +1,6 @@
 import { products as fallbackProducts, type Product } from "@/lib/catalog";
 import { isDatabaseConfigured, query } from "@/lib/db";
+import {attachProductMedia} from "@/lib/media/storefront";
 
 type Row={
   slug:string;
@@ -91,7 +92,7 @@ export async function getStorefrontProducts():Promise<Product[]>{
          )
        ORDER BY p.created_at,v.created_at`,
     );
-    return groupRows(result.rows);
+    return attachProductMedia(groupRows(result.rows));
   }catch{
     // Fail closed when the database-backed release rules cannot be evaluated.
     return [];
@@ -110,7 +111,9 @@ export async function getStorefrontProductRaw(slug:string):Promise<Product|null>
        ORDER BY v.created_at`,
       [slug],
     );
-    return groupRows(result.rows)[0]??null;
+    const product=groupRows(result.rows)[0]??null;
+    if(!product)return null;
+    return (await attachProductMedia([product]))[0]??product;
   }catch{
     return null;
   }
