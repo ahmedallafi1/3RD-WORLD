@@ -1,0 +1,23 @@
+import {createHash,createHmac,randomBytes} from "node:crypto";
+
+function accessSecret(){
+  return process.env.DROP_ACCESS_SECRET||process.env.STRIPE_WEBHOOK_SECRET||"development-only-change-me";
+}
+
+export function hashAccessCode(code:string){
+  return createHmac("sha256",accessSecret())
+    .update(code.trim().toUpperCase())
+    .digest("hex");
+}
+
+export function newDropSessionToken(){
+  return randomBytes(32).toString("base64url");
+}
+
+export function hashDropSessionToken(token:string){
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export function dropAccessCookieName(slug:string){
+  return "tw_drop_"+slug.toLowerCase().replace(/[^a-z0-9_-]/g,"_");
+}
