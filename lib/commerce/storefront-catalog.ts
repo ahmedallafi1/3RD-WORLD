@@ -74,19 +74,20 @@ export async function getStorefrontProducts():Promise<Product[]>{
     const result=await query<Row>(
       baseSelect+`
        WHERE p.status='ACTIVE'
-         AND NOT EXISTS (
-           SELECT 1
-           FROM drop_products dp
-           JOIN drops d ON d.id=dp.drop_id
-           WHERE dp.product_id=p.id
-             AND d.status IN ('DRAFT','SCHEDULED','LIVE')
-             AND (d.closes_at IS NULL OR d.closes_at>now())
-             AND NOT (
-               d.status='LIVE'
+         AND (
+           NOT EXISTS (
+             SELECT 1 FROM drop_products any_dp WHERE any_dp.product_id=p.id
+           )
+           OR EXISTS (
+             SELECT 1
+             FROM drop_products dp
+             JOIN drops d ON d.id=dp.drop_id
+             WHERE dp.product_id=p.id
+               AND d.status='LIVE'
                AND d.access_mode='PUBLIC'
                AND (d.opens_at IS NULL OR d.opens_at<=now())
                AND (d.closes_at IS NULL OR d.closes_at>now())
-             )
+           )
          )
        ORDER BY p.created_at,v.created_at`,
     );
