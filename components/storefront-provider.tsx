@@ -39,14 +39,21 @@ export function StorefrontProvider({ children }: { children: React.ReactNode }) 
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    let savedItems: BagItem[] = [];
+
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) setBagItems(JSON.parse(saved));
+      if (saved) savedItems = JSON.parse(saved);
     } catch {
       // Keep the storefront usable if local storage is unavailable.
-    } finally {
-      setHydrated(true);
     }
+
+    const timer = window.setTimeout(() => {
+      setBagItems(savedItems);
+      setHydrated(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
