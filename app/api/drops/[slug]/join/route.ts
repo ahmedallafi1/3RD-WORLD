@@ -2,11 +2,18 @@ import {NextRequest,NextResponse} from "next/server";
 import {getCustomerUser} from "@/lib/auth/session";
 import {joinAccessList} from "@/lib/world-engine/access";
 import {getDropBySlug} from "@/lib/world-engine/repository";
+import {assertActionRateLimit} from "@/lib/security/action-rate-limit";
 
 export async function POST(
   request:NextRequest,
   {params}:{params:Promise<{slug:string}>},
 ){
+  try{
+    await assertActionRateLimit({request,action:"DROP_WAITLIST_JOIN",maxAttempts:8,windowMinutes:15});
+  }catch(error){
+    return NextResponse.json({error:error instanceof Error?error.message:"Too many requests."},{status:429});
+  }
+
   const {slug}=await params;
   const drop=await getDropBySlug(slug);
   if(!drop)return NextResponse.json({error:"Drop not found."},{status:404});
