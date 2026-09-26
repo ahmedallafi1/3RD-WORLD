@@ -41,3 +41,8 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-form-grid .admin-full{grid-column:1/-1}
 @media(max-width:850px){.admin-login-page{grid-template-columns:1fr}.admin-form-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.admin-form-grid{grid-template-columns:1fr}.admin-user>span{display:none}}
+
+.admin-row-action,.admin-inline-form button{border:0;background:transparent;color:inherit;padding:0;border-bottom:1px solid currentColor;cursor:pointer}
+.admin-inline-form{display:grid;grid-template-columns:90px 90px 140px auto auto;align-items:center;gap:8px;min-width:430px}
+.admin-inline-form input{min-width:0;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
+.admin-inline-form small{grid-column:1/-1;color:#8a1e1e}
