@@ -1,25 +1,25 @@
 import type {Metadata} from "next";
 import {notFound} from "next/navigation";
 import {AddToBag} from "@/components/storefront";
-import {formatMoney,getProduct,products} from "@/lib/catalog";
+import {formatMoney,products as fallbackProducts} from "@/lib/catalog";
+import {getStorefrontProduct} from "@/lib/commerce/storefront-catalog";
+
+export const dynamic="force-dynamic";
 
 export function generateStaticParams(){
-  return products.map(product=>({slug:product.slug}));
+  return fallbackProducts.map(product=>({slug:product.slug}));
 }
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
   const {slug}=await params;
-  const product=getProduct(slug);
+  const product=await getStorefrontProduct(slug);
   if(!product)return {};
-  return {
-    title:product.name,
-    description:product.description
-  };
+  return {title:product.name,description:product.description};
 }
 
 export default async function ProductPage({params}:{params:Promise<{slug:string}>}){
   const {slug}=await params;
-  const product=getProduct(slug);
+  const product=await getStorefrontProduct(slug);
   if(!product)notFound();
 
   return (
