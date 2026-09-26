@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {query} from "@/lib/db";
 import {finalizeOrderTax} from "@/lib/tax/order-tax";
+import {syncStripeRefundFromWebhook} from "@/lib/payments/refunds";
 import {verifyStripeWebhook} from "@/lib/payments/stripe";
 import {
   failOrCancelPayment,
@@ -57,7 +58,13 @@ export async function POST(request:NextRequest){
     if(recorded.duplicate)return NextResponse.json({received:true,duplicate:true});
 
     if(providerPaymentId&&orderId){
-      if(event.type==="payment_intent.succeeded"){
+      if(event.type==="refund.created"||event.type==="refund.updated"||event.type==="refund.failed"){
+        await syncStripeRefundFromWebhook({
+          providerRefundId:providerPaymentId,
+          orderId,
+          status:object?.status??(event.type==="refund.failed"?"failed":"pending"),
+        });
+      }else if(event.type==="payment_intent.succeeded"){
         await markOrderPaidFromPayment({
           orderId,
           providerPaymentId,
