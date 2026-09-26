@@ -13,6 +13,7 @@ export async function getSystemReadiness(){
   const databaseConfigured=Boolean(process.env.DATABASE_URL);
   let databaseReady=false;
   let pendingMigrations:string[]=[];
+  let admin2faReady=false;
 
   if(databaseConfigured){
     try{
@@ -31,6 +32,17 @@ export async function getSystemReadiness(){
       );
       const present=new Set(result.rows.map(row=>row.table_name));
       pendingMigrations=requiredTables.filter(name=>!present.has(name));
+
+      if(!pendingMigrations.length){
+        const admins=await query<{count:string}>(
+          `SELECT count(*)::text AS count
+           FROM admin_users
+           WHERE active=true
+             AND role IN ('OWNER','ADMIN')
+             AND totp_enabled=false`,
+        );
+        admin2faReady=Number(admins.rows[0]?.count??0)===0;
+      }
     }catch{
       databaseReady=false;
     }
@@ -52,6 +64,12 @@ export async function getSystemReadiness(){
       detail:!databaseConfigured?"DATABASE_URL MISSING":
         !databaseReady?"DATABASE UNREACHABLE":
         pendingMigrations.length?"MIGRATIONS MISSING: "+pendingMigrations.join(", "):"CONNECTED / CURRENT",
+    },
+    {
+      key:"ADMIN_2FA",
+      ready:admin2faReady,
+      required:true,
+      detail:admin2faReady?"OWNER / ADMIN PROTECTED":"ENABLE 2FA FOR EVERY OWNER / ADMIN",
     },
     {
       key:"ACCESS_SECRET",
