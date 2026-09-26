@@ -1,7 +1,12 @@
 import {createHash,createHmac,randomBytes} from "node:crypto";
 
 function accessSecret(){
-  return process.env.DROP_ACCESS_SECRET||process.env.STRIPE_WEBHOOK_SECRET||"development-only-change-me";
+  const secret=process.env.DROP_ACCESS_SECRET||process.env.STRIPE_WEBHOOK_SECRET;
+  if(secret)return secret;
+  if(process.env.NODE_ENV==="production"){
+    throw new Error("DROP_ACCESS_SECRET is not configured.");
+  }
+  return "development-only-change-me";
 }
 
 export function hashAccessCode(code:string){
