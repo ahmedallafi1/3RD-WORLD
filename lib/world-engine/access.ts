@@ -6,6 +6,7 @@ import {
   enqueueEmail,
 } from "@/lib/world-engine/notifications";
 import type {DropAccessDecision,DropAccessLevel,DropPhase,DropRecord,PassportTier} from "@/lib/world-engine/types";
+import {normalizeEmail} from "@/lib/security/validation";
 
 export function getDropPhase(drop:DropRecord,now=new Date()):DropPhase{
   if(drop.status==="CLOSED"||drop.status==="ARCHIVED")return "CLOSED";
@@ -334,8 +335,8 @@ export async function joinAccessList(args:{
   type:"WORLD"|"WAITLIST"|"RESTOCK";
   source?:string;
 }){
-  const email=args.email.trim().toLowerCase();
-  if(!email||!email.includes("@"))throw new Error("Enter a valid email address.");
+  const email=normalizeEmail(args.email);
+  if(!email)throw new Error("Enter a valid email address.");
 
   await withTransaction(async client=>{
     await client.query(
