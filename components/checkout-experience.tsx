@@ -18,7 +18,7 @@ type Quote={
 };
 
 type PreparedCheckout={
-  order:{id:string;number:string};
+  order:{id:string;number:string;checkoutToken:string};
   quote:Quote;
   pricedLines:Array<{
     id:string;
@@ -319,14 +319,20 @@ export function CheckoutExperience(){
       const paymentResponse=await fetch("/api/commerce/payments/session",{
         method:"POST",
         headers:{"content-type":"application/json"},
-        body:JSON.stringify({orderId:nextPrepared.order.id}),
+        body:JSON.stringify({
+          orderId:nextPrepared.order.id,
+          checkoutToken:nextPrepared.order.checkoutToken,
+        }),
       });
       const paymentPayload=await paymentResponse.json();
       if(!paymentResponse.ok){
         await fetch("/api/commerce/checkout/cancel",{
           method:"POST",
           headers:{"content-type":"application/json"},
-          body:JSON.stringify({orderId:nextPrepared.order.id}),
+          body:JSON.stringify({
+            orderId:nextPrepared.order.id,
+            checkoutToken:nextPrepared.order.checkoutToken,
+          }),
         }).catch(()=>undefined);
         setPrepared(null);
         throw new Error(paymentPayload.error??"Unable to start secure payment.");
@@ -352,7 +358,10 @@ export function CheckoutExperience(){
       await fetch("/api/commerce/checkout/cancel",{
         method:"POST",
         headers:{"content-type":"application/json"},
-        body:JSON.stringify({orderId}),
+        body:JSON.stringify({
+          orderId,
+          checkoutToken:prepared?.order.checkoutToken,
+        }),
       }).catch(()=>undefined);
     }
     setPaymentSession(null);
