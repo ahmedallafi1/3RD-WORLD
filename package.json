@@ -13,10 +13,10 @@
     "db:seed":"node scripts/seed-catalog.mjs"
   },
   "dependencies":{
-    "next":"15.5.25",
+    "next":"16.3.6",
     "pg":"^8.16.3",
-    "react":"19.1.9",
-    "react-dom":"19.1.9"
+    "react":"19.3.0",
+    "react-dom":"19.3.0"
   },
   "devDependencies":{
     "@types/node":"^22.15.0",
