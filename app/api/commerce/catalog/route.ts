@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
-import { products } from "@/lib/catalog";
+import { getStorefrontProducts } from "@/lib/commerce/storefront-catalog";
+import { isDatabaseConfigured } from "@/lib/db";
 
-export function GET() {
+export const dynamic="force-dynamic";
+
+export async function GET() {
+  const products=await getStorefrontProducts();
   return NextResponse.json({
     data: products.map(product => ({
       slug: product.slug,
@@ -10,13 +14,14 @@ export function GET() {
       category: product.category,
       color: product.color,
       sizes: product.sizes,
-      price: { amount: product.price * 100, currency: "USD" },
+      price: { amount: Math.round(product.price * 100), currency: "USD" },
       description: product.description,
       material: product.material,
       fit: product.fit,
+      status: product.status??"AVAILABLE",
     })),
     meta: {
-      source: "phase-03-preview-adapter",
+      source: isDatabaseConfigured()?"postgres":"fallback-catalog",
       count: products.length,
     },
   });
