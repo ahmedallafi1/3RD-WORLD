@@ -1,4 +1,5 @@
 import { query, withTransaction } from "@/lib/db";
+import {hashCartToken,newCartToken} from "@/lib/security/cart-token";
 
 export async function createCart(args?: {
   email?: string;
@@ -6,18 +7,20 @@ export async function createCart(args?: {
   customerId?: string;
   marketCode?: string;
 }) {
+  const accessToken=newCartToken();
   const result = await query<{ id: string }>(
-    `INSERT INTO carts (customer_id, email, currency, market_code, expires_at)
-     VALUES ($1,$2,$3,$4, now() + interval '24 hours')
+    `INSERT INTO carts (customer_id, email, currency, market_code, access_token_hash, expires_at)
+     VALUES ($1,$2,$3,$4,$5, now() + interval '24 hours')
      RETURNING id`,
     [
       args?.customerId ?? null,
       args?.email?.trim().toLowerCase() ?? null,
       args?.currency ?? "USD",
       args?.marketCode ?? null,
+      hashCartToken(accessToken),
     ],
   );
-  return { id: result.rows[0].id };
+  return { id: result.rows[0].id, accessToken };
 }
 
 export async function getCart(cartId: string) {

@@ -1,5 +1,6 @@
 import {query} from "@/lib/db";
 import type {Product} from "@/lib/catalog";
+import {attachProductMedia} from "@/lib/media/storefront";
 
 export async function isProductSaved(customerId:string,slug:string){
   const result=await query<{saved:boolean}>(
@@ -82,8 +83,9 @@ export async function listSavedProducts(customerId:string):Promise<Product[]>{
     });
   }
 
-  return [...grouped.values()].map(({_available,...product})=>({
+  const products=[...grouped.values()].map(({_available,...product})=>({
     ...product,
-    status:_available>0?"AVAILABLE":"SOLD OUT",
+    status:(_available>0?"AVAILABLE":"SOLD OUT") as Product["status"],
   }));
+  return attachProductMedia(products);
 }

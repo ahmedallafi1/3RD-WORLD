@@ -13,6 +13,7 @@ export type AdminUser = {
   email: string;
   name: string;
   role: AdminRole;
+  mfaEnabled: boolean;
 };
 
 export type CustomerUser = {
@@ -36,6 +37,17 @@ export async function createAdminSession(adminUserId: string) {
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
 
+  await query("DELETE FROM admin_sessions WHERE expires_at<=now()");
+  await query(
+    `DELETE FROM admin_sessions
+     WHERE id IN (
+       SELECT id FROM admin_sessions
+       WHERE admin_user_id=$1
+       ORDER BY created_at DESC
+       OFFSET 2
+     )`,
+    [adminUserId],
+  );
   await query(
     `INSERT INTO admin_sessions (admin_user_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
@@ -50,6 +62,17 @@ export async function createCustomerSession(customerId: string) {
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+  await query("DELETE FROM customer_sessions WHERE expires_at<=now()");
+  await query(
+    `DELETE FROM customer_sessions
+     WHERE id IN (
+       SELECT id FROM customer_sessions
+       WHERE customer_id=$1
+       ORDER BY created_at DESC
+       OFFSET 9
+     )`,
+    [customerId],
+  );
   await query(
     `INSERT INTO customer_sessions (customer_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
@@ -70,6 +93,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
       email: "preview@3rdworld.local",
       name: "Preview Owner",
       role: "OWNER",
+      mfaEnabled: false,
     };
   }
 
@@ -82,8 +106,9 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     email: string;
     name: string;
     role: AdminRole;
+    totp_enabled: boolean;
   }>(
-    `SELECT u.id, u.email, u.name, u.role
+    `SELECT u.id, u.email, u.name, u.role, u.totp_enabled
      FROM admin_sessions s
      JOIN admin_users u ON u.id = s.admin_user_id
      WHERE s.token_hash = $1
@@ -93,7 +118,14 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     [hashToken(token)],
   );
 
-  return result.rows[0] ?? null;
+  const row=result.rows[0];
+  return row?{
+    id:row.id,
+    email:row.email,
+    name:row.name,
+    role:row.role,
+    mfaEnabled:row.totp_enabled,
+  }:null;
 }
 
 export async function requireAdminUser(allowed?: AdminRole[]) {

@@ -17,8 +17,8 @@ export default async function AdminOverviewPage() {
   return (
     <main>
       <div className="admin-page-head">
-        <div><p>PHASE 03</p><h1>OVERVIEW</h1></div>
-        <p>LIVE COMMERCE CORE</p>
+        <div><p>3RD WORLD / OPERATIONS</p><h1>OVERVIEW</h1></div>
+        <p>COMMERCE + WORLD ENGINE</p>
       </div>
       <section className="admin-metrics">
         {metrics.map(([label, value]) => (

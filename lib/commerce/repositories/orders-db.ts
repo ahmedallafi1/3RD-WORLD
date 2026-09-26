@@ -1,6 +1,7 @@
 import { query, withTransaction } from "@/lib/db";
 import type { OrderStatus } from "@/lib/commerce/domain";
 import { assertOrderTransition } from "@/lib/commerce/orders";
+import {hashCheckoutToken,newCheckoutToken} from "@/lib/security/checkout-token";
 
 function makeOrderNumber() {
   const stamp=Date.now().toString(36).toUpperCase();
@@ -115,12 +116,13 @@ export async function createPendingOrderFromCart(args:{
       (sum,line)=>sum+Number(line.unit_price_amount)*line.quantity,0
     );
     const orderNumber=makeOrderNumber();
+    const checkoutToken=newCheckoutToken();
 
     const order=await client.query<{id:string}>(
       `INSERT INTO orders
        (order_number,customer_id,cart_id,email,status,currency,
-        subtotal_amount,grand_total_amount,shipping_address,market_code)
-       VALUES($1,$2,$3,$4,'PENDING_PAYMENT',$5,$6,$6,$7::jsonb,$8)
+        subtotal_amount,grand_total_amount,shipping_address,market_code,checkout_token_hash)
+       VALUES($1,$2,$3,$4,'PENDING_PAYMENT',$5,$6,$6,$7::jsonb,$8,$9)
        RETURNING id`,
       [
         orderNumber,
@@ -131,6 +133,7 @@ export async function createPendingOrderFromCart(args:{
         subtotal,
         JSON.stringify(args.shippingAddress??null),
         args.marketCode??null,
+        hashCheckoutToken(checkoutToken),
       ],
     );
     const orderId=order.rows[0].id;
@@ -174,7 +177,13 @@ export async function createPendingOrderFromCart(args:{
       [orderId],
     );
 
-    return {id:orderId,number:orderNumber,status:"PENDING_PAYMENT" as const,subtotal};
+    return {
+      id:orderId,
+      number:orderNumber,
+      status:"PENDING_PAYMENT" as const,
+      subtotal,
+      checkoutToken,
+    };
   });
 }
 

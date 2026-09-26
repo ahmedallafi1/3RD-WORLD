@@ -80,3 +80,44 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-drop-products label small{color:var(--admin-muted)}
 .admin-drop-products>div{display:flex;gap:10px}
 @media(max-width:850px){.admin-two-col{grid-template-columns:1fr}}
+
+.admin-login-back{border:0;background:transparent;color:var(--admin-muted);cursor:pointer;justify-self:start;padding:0;border-bottom:1px solid currentColor}
+.admin-security-card{border:1px solid var(--admin-line);padding:24px;display:grid;gap:18px;max-width:760px}
+.admin-security-card>span,.admin-mfa-secret>span{font-size:10px;color:var(--admin-muted)}
+.admin-security-card h2{font-size:clamp(38px,6vw,72px);letter-spacing:-.06em;margin:0}
+.admin-security-card p{color:var(--admin-muted);line-height:1.5;max-width:60ch}
+.admin-mfa-secret{display:grid;gap:8px;border:1px solid var(--admin-line);padding:16px;overflow-wrap:anywhere}
+.admin-mfa-secret code{font-size:18px;letter-spacing:.08em}
+.admin-mfa-secret small{color:var(--admin-muted)}
+.admin-mfa-uri{border-top:1px solid var(--admin-line);border-bottom:1px solid var(--admin-line);padding:12px 0}
+.admin-mfa-uri summary{cursor:pointer}.admin-mfa-uri code{display:block;margin-top:12px;overflow-wrap:anywhere;color:var(--admin-muted)}
+.admin-security-inline{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.admin-security-inline input{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:13px}
+.admin-recovery-codes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.admin-recovery-codes code{border:1px solid var(--admin-line);padding:10px;text-align:center;letter-spacing:.08em}
+.admin-security-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:28px}
+.admin-security-notes article{border:1px solid var(--admin-line);padding:18px;display:grid;gap:12px}
+.admin-security-notes span{font-size:10px;color:var(--admin-muted)}
+.admin-security-notes strong{font-size:28px;font-weight:400}.admin-security-notes p{color:var(--admin-muted);line-height:1.45}
+@media(max-width:650px){.admin-security-inline,.admin-security-notes,.admin-recovery-codes{grid-template-columns:1fr}}
+
+.admin-media-manager{display:grid;gap:10px;min-width:340px}
+.admin-media-head{display:flex;justify-content:space-between;gap:12px}
+.admin-media-head button,.admin-media-row button{border:0;background:transparent;color:inherit;cursor:pointer;border-bottom:1px solid currentColor;padding:0}
+.admin-media-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-top:1px solid var(--admin-line)}
+.admin-media-row>div{display:grid;gap:3px;min-width:0}.admin-media-row small{color:var(--admin-muted);overflow-wrap:anywhere}
+.admin-media-manager form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--admin-line);padding-top:10px}
+.admin-media-manager form label{display:grid;gap:4px;font-size:9px;color:var(--admin-muted)}
+.admin-media-manager form input,.admin-media-manager form select{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px;min-width:0}
+.admin-media-manager form .admin-full,.admin-media-manager form .admin-submit,.admin-media-manager form .admin-form-error{grid-column:1/-1}
+@media(max-width:650px){.admin-media-manager{min-width:280px}.admin-media-manager form{grid-template-columns:1fr}}
+
+.admin-content-editor{display:grid;gap:10px;min-width:min(620px,70vw)}
+.admin-content-editor label{display:grid;gap:5px;font-size:9px;color:var(--admin-muted)}
+.admin-content-editor input,.admin-content-editor select,.admin-content-editor textarea{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:10px;font:inherit}
+.admin-content-editor textarea{line-height:1.5;resize:vertical}
+.admin-content-editor>small{color:var(--admin-muted)}
+.admin-content-editor>div{display:flex;gap:12px;align-items:center}
+
+.admin-table-scroll{overflow:auto;max-width:100%}
+.admin-audit-json{display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--admin-muted)}

@@ -23,6 +23,7 @@ export async function prepareCheckout(args:{
   accessTokens?:Record<string,string>;
 }){
   if(!args.lines.length)throw new Error("Checkout requires at least one item.");
+  if(args.lines.length>30)throw new Error("Checkout has too many line items.");
 
   const market=await getMarketForCountry(args.countryCode);
   const location=await query<{id:string}>(
@@ -38,7 +39,9 @@ export async function prepareCheckout(args:{
     currency:string;
   }>=[];
   for(const line of args.lines){
-    if(!Number.isInteger(line.quantity)||line.quantity<=0)throw new Error("Invalid quantity.");
+    if(!Number.isInteger(line.quantity)||line.quantity<=0||line.quantity>20){
+      throw new Error("Quantity must be between 1 and 20.");
+    }
 
     await assertProductCheckoutAccess({
       slug:line.slug,

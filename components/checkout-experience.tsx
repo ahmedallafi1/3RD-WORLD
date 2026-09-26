@@ -18,7 +18,7 @@ type Quote={
 };
 
 type PreparedCheckout={
-  order:{id:string;number:string};
+  order:{id:string;number:string;checkoutToken:string};
   quote:Quote;
   pricedLines:Array<{
     id:string;
@@ -242,11 +242,12 @@ function StripePaymentPanel({
       <div id="tw-express-checkout" className="express-payment"/>
       <div className="payment-divider"><span>OR PAY ANOTHER WAY</span></div>
       <div id="tw-payment-element" className="stripe-payment-element"/>
-      {error&&<p className="checkout-error">{error}</p>}
+      {error&&<p className="checkout-error" role="alert">{error}</p>}
       <button className="primary-button" type="button" disabled={!ready||busy} onClick={()=>void pay()}>
         {busy?"PROCESSING…":"PAY "+money(session.amount,session.currency)}
       </button>
       <p className="secure-note">PAYMENT DETAILS ARE TOKENIZED BY THE PAYMENT PROVIDER AND NEVER STORED BY 3RD WORLD.</p>
+      <p className="secure-note">NEED HELP? REVIEW <Link href="/shipping">SHIPPING</Link> OR <Link href="/returns">RETURNS</Link>.</p>
     </div>
   );
 }
@@ -319,14 +320,20 @@ export function CheckoutExperience(){
       const paymentResponse=await fetch("/api/commerce/payments/session",{
         method:"POST",
         headers:{"content-type":"application/json"},
-        body:JSON.stringify({orderId:nextPrepared.order.id}),
+        body:JSON.stringify({
+          orderId:nextPrepared.order.id,
+          checkoutToken:nextPrepared.order.checkoutToken,
+        }),
       });
       const paymentPayload=await paymentResponse.json();
       if(!paymentResponse.ok){
         await fetch("/api/commerce/checkout/cancel",{
           method:"POST",
           headers:{"content-type":"application/json"},
-          body:JSON.stringify({orderId:nextPrepared.order.id}),
+          body:JSON.stringify({
+            orderId:nextPrepared.order.id,
+            checkoutToken:nextPrepared.order.checkoutToken,
+          }),
         }).catch(()=>undefined);
         setPrepared(null);
         throw new Error(paymentPayload.error??"Unable to start secure payment.");
@@ -352,7 +359,10 @@ export function CheckoutExperience(){
       await fetch("/api/commerce/checkout/cancel",{
         method:"POST",
         headers:{"content-type":"application/json"},
-        body:JSON.stringify({orderId}),
+        body:JSON.stringify({
+          orderId,
+          checkoutToken:prepared?.order.checkoutToken,
+        }),
       }).catch(()=>undefined);
     }
     setPaymentSession(null);
@@ -381,20 +391,20 @@ export function CheckoutExperience(){
           <form onSubmit={submitDetails}>
             <label>
               <span>CONTACT</span>
-              <input name="email" type="email" autoComplete="email" placeholder="EMAIL ADDRESS" required/>
+              <input name="email" type="email" autoComplete="email" placeholder="EMAIL ADDRESS" aria-label="Email address" required/>
             </label>
 
             <fieldset>
               <legend>DELIVERY</legend>
               <div className="field-grid">
-                <input name="firstName" autoComplete="given-name" placeholder="FIRST NAME" required/>
-                <input name="lastName" autoComplete="family-name" placeholder="LAST NAME" required/>
-                <input name="line1" className="full" autoComplete="address-line1" placeholder="ADDRESS" required/>
-                <input name="line2" className="full" autoComplete="address-line2" placeholder="APT / SUITE"/>
-                <input name="city" autoComplete="address-level2" placeholder="CITY" required/>
-                <input name="state" autoComplete="address-level1" placeholder="STATE / REGION"/>
-                <input name="postalCode" autoComplete="postal-code" placeholder="POSTAL CODE" required/>
-                <select name="country" className="checkout-select" autoComplete="country" defaultValue="US" required>
+                <input name="firstName" autoComplete="given-name" placeholder="FIRST NAME" aria-label="First name" required/>
+                <input name="lastName" autoComplete="family-name" placeholder="LAST NAME" aria-label="Last name" required/>
+                <input name="line1" className="full" autoComplete="address-line1" placeholder="ADDRESS" aria-label="Street address" required/>
+                <input name="line2" className="full" autoComplete="address-line2" placeholder="APT / SUITE" aria-label="Apartment or suite"/>
+                <input name="city" autoComplete="address-level2" placeholder="CITY" aria-label="City" required/>
+                <input name="state" autoComplete="address-level1" placeholder="STATE / REGION" aria-label="State or region"/>
+                <input name="postalCode" autoComplete="postal-code" placeholder="POSTAL CODE" aria-label="Postal code" required/>
+                <select name="country" className="checkout-select" autoComplete="country" defaultValue="US" aria-label="Country" required>
                   <option value="US">UNITED STATES</option>
                   <option value="CA">CANADA</option>
                   <option value="GB">UNITED KINGDOM</option>
@@ -425,7 +435,7 @@ export function CheckoutExperience(){
                   <option value="IN">INDIA</option>
                   <option value="ZA">SOUTH AFRICA</option>
                 </select>
-                <input name="phone" className="full" autoComplete="tel" placeholder="PHONE"/>
+                <input name="phone" className="full" autoComplete="tel" placeholder="PHONE" aria-label="Phone number"/>
               </div>
             </fieldset>
 
@@ -433,6 +443,9 @@ export function CheckoutExperience(){
             <button className="primary-button" disabled={busy||cart.lines.length===0}>
               {busy?"RESERVING YOUR PIECES…":"CONTINUE TO PAYMENT"}
             </button>
+            <p className="checkout-legal-note">
+              BY CONTINUING, YOU AGREE TO THE <Link href="/terms">TERMS</Link> AND ACKNOWLEDGE THE <Link href="/privacy">PRIVACY POLICY</Link>.
+            </p>
           </form>
         )}
 

@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {quoteCheckout} from "@/lib/commerce/checkout-quotes";
 import type {ShippingAddress} from "@/lib/shipping/easypost";
+import {assertCartToken} from "@/lib/security/cart-token";
 
 export async function POST(request:NextRequest){
   if(!process.env.DATABASE_URL){
@@ -11,6 +12,7 @@ export async function POST(request:NextRequest){
     cartId?:string;
     countryCode?:string;
     shippingAddress?:ShippingAddress;
+    cartToken?:string;
   }|null;
 
   if(!body?.cartId||!body.countryCode){
@@ -18,12 +20,20 @@ export async function POST(request:NextRequest){
   }
 
   try{
+    await assertCartToken(
+      body.cartId,
+      request.headers.get("x-cart-token")??body.cartToken,
+    );
     return NextResponse.json({data:await quoteCheckout({
       cartId:body.cartId,
       countryCode:body.countryCode,
       shippingAddress:body.shippingAddress,
     })});
   }catch(error){
-    return NextResponse.json({error:error instanceof Error?error.message:"Unable to quote checkout."},{status:400});
+    const message=error instanceof Error?error.message:"Unable to quote checkout.";
+    return NextResponse.json(
+      {error:message},
+      {status:message.includes("authorization")?403:400},
+    );
   }
 }

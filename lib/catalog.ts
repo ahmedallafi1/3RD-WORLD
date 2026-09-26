@@ -1,3 +1,10 @@
+export type ProductMedia={
+  src:string;
+  alt:string;
+  role:"COVER"|"GALLERY"|"DETAIL"|"CAMPAIGN";
+  kind:"IMAGE"|"VIDEO";
+};
+
 export type Product={
   slug:string;
   name:string;
@@ -11,6 +18,7 @@ export type Product={
   fit:string;
   tone:"burgundy"|"black"|"bone"|"navy"|"grey";
   status?:"AVAILABLE"|"SOLD OUT"|"COMING SOON";
+  media?:ProductMedia[];
 };
 
 export type CartLine={product:Product;size:string;quantity:number};

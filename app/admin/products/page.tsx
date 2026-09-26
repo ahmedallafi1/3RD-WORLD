@@ -1,31 +1,38 @@
 import { requireAdminUser } from "@/lib/auth/session";
 import { isDatabaseConfigured } from "@/lib/db";
 import { listAdminProducts } from "@/lib/commerce/repositories/products";
+import {listAdminProductMedia} from "@/lib/commerce/repositories/media";
 import { products as previewProducts } from "@/lib/catalog";
 import { AdminProductCreateForm } from "@/components/admin-product-create-form";
+import {AdminProductMedia} from "@/components/admin-product-media";
 
 export default async function AdminProductsPage() {
   await requireAdminUser(["OWNER","ADMIN","CONTENT"]);
   const connected=isDatabaseConfigured();
-  const products=connected?await listAdminProducts():previewProducts.map(product=>({
-    id:product.slug,
-    slug:product.slug,
-    name:product.name,
-    category:product.category,
-    description:product.description,
-    status:"ACTIVE" as const,
-    worldCode:product.world,
-    variants:product.sizes.map(size=>({
-      id:product.slug+"-"+size,
-      sku:(product.slug+"-"+size).toUpperCase(),
-      title:size,
-      size,
-      color:product.color,
-      priceAmount:product.price*100,
-      currency:"USD" as const,
-      active:true,
-    })),
-  }));
+  const [products,media]=connected
+    ? await Promise.all([listAdminProducts(),listAdminProductMedia()])
+    : [
+        previewProducts.map(product=>({
+          id:product.slug,
+          slug:product.slug,
+          name:product.name,
+          category:product.category,
+          description:product.description,
+          status:"ACTIVE" as const,
+          worldCode:product.world,
+          variants:product.sizes.map(size=>({
+            id:product.slug+"-"+size,
+            sku:(product.slug+"-"+size).toUpperCase(),
+            title:size,
+            size,
+            color:product.color,
+            priceAmount:product.price*100,
+            currency:"USD" as const,
+            active:true,
+          })),
+        })),
+        [],
+      ];
 
   return (
     <main>
@@ -35,10 +42,11 @@ export default async function AdminProductsPage() {
       </div>
       {connected&&<AdminProductCreateForm/>}
       <table className="admin-table">
-        <thead><tr><th>PRODUCT</th><th>WORLD</th><th>CATEGORY</th><th>STATUS</th><th>VARIANTS</th><th>FROM</th></tr></thead>
+        <thead><tr><th>PRODUCT</th><th>WORLD</th><th>CATEGORY</th><th>STATUS</th><th>VARIANTS</th><th>FROM</th><th>MEDIA</th></tr></thead>
         <tbody>
           {products.map(product => {
             const first=product.variants[0];
+            const productMedia=media.filter(item=>item.productId===product.id);
             return <tr key={product.id}>
               <td><strong>{product.name}</strong><br/><small>{product.slug}</small></td>
               <td>{product.worldCode??"—"}</td>
@@ -46,6 +54,7 @@ export default async function AdminProductsPage() {
               <td><span className="admin-pill">{product.status}</span></td>
               <td>{product.variants.map(v=>v.size).join(" / ")}</td>
               <td>{first?new Intl.NumberFormat("en-US",{style:"currency",currency:first.currency}).format(first.priceAmount/100):"—"}</td>
+              <td>{connected?<AdminProductMedia productId={product.id} items={productMedia}/>:"PREVIEW"}</td>
             </tr>;
           })}
         </tbody>

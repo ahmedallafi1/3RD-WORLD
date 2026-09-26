@@ -4,6 +4,7 @@ import {
   dropEmailHtml,
   enqueueEmail,
 } from "@/lib/world-engine/notifications";
+import {runHousekeeping} from "@/lib/ops/housekeeping";
 
 type DropLifecycleRow={
   id:string;
@@ -183,9 +184,10 @@ export async function tickWorldEngine(){
 }
 
 export async function runWorldEngine(){
+  const housekeeping=await runHousekeeping();
   const lifecycle=await tickWorldEngine();
   const delivery=await dispatchNotificationOutbox(
     Math.max(1,Number(process.env.NOTIFICATION_BATCH_SIZE??40)),
   );
-  return {lifecycle,delivery};
+  return {housekeeping,lifecycle,delivery};
 }
