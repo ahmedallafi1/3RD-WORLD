@@ -39,7 +39,8 @@ export async function getSystemReadiness(){
   const commerce=getCommerceReadiness().map(item=>({
     key:item.key,
     ready:item.ready,
-    required:["PAYMENTS","WEBHOOK","SHIPPING"].includes(item.key),
+    required:["STRIPE","WEBHOOK","SHIPPING","TAX"].includes(item.key)
+      ||(item.key==="DUTIES"&&item.detail!=="DDU OR NOT LIVE"),
     detail:item.detail,
   }));
 
