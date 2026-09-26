@@ -275,30 +275,42 @@ export async function joinAccessList(args:{
   const email=args.email.trim().toLowerCase();
   if(!email||!email.includes("@"))throw new Error("Enter a valid email address.");
 
-  await query(
-    `INSERT INTO access_signups
-     (drop_id,product_id,customer_id,email,signup_type,status,source)
-     VALUES($1,$2,$3,$4,$5,'SUBSCRIBED',$6)
-     ON CONFLICT (
-       lower(email),
-       signup_type,
-       COALESCE(drop_id::text,''),
-       COALESCE(product_id::text,'')
-     )
-     DO UPDATE SET
-       status='SUBSCRIBED',
-       customer_id=COALESCE(EXCLUDED.customer_id,access_signups.customer_id),
-       source=COALESCE(EXCLUDED.source,access_signups.source),
-       updated_at=now()`,
-    [
-      args.dropId??null,
-      args.productId??null,
-      args.customerId??null,
-      email,
-      args.type,
-      args.source??null,
-    ],
-  );
+  await withTransaction(async client=>{
+    await client.query(
+      `INSERT INTO access_signups
+       (drop_id,product_id,customer_id,email,signup_type,status,source)
+       VALUES($1,$2,$3,$4,$5,'SUBSCRIBED',$6)
+       ON CONFLICT DO NOTHING`,
+      [
+        args.dropId??null,
+        args.productId??null,
+        args.customerId??null,
+        email,
+        args.type,
+        args.source??null,
+      ],
+    );
+
+    await client.query(
+      `UPDATE access_signups
+       SET status='SUBSCRIBED',
+           customer_id=COALESCE($3,customer_id),
+           source=COALESCE($6,source),
+           updated_at=now()
+       WHERE lower(email)=lower($4)
+         AND signup_type=$5
+         AND (($1::uuid IS NULL AND drop_id IS NULL) OR drop_id=$1::uuid)
+         AND (($2::uuid IS NULL AND product_id IS NULL) OR product_id=$2::uuid)`,
+      [
+        args.dropId??null,
+        args.productId??null,
+        args.customerId??null,
+        email,
+        args.type,
+        args.source??null,
+      ],
+    );
+  });
 
   return {email};
 }
