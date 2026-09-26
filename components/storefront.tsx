@@ -401,8 +401,11 @@ export function Footer(){
         <Link href="/passport">PASSPORT</Link>
       </nav>
       <div className="footer-meta">
-        <Link href="/search">SEARCH</Link>
-        <span>US / USD</span>
+        <Link href="/shipping">SHIPPING</Link>
+        <Link href="/returns">RETURNS</Link>
+        <Link href="/privacy">PRIVACY</Link>
+        <Link href="/terms">TERMS</Link>
+        <Link href="/contact">CONTACT</Link>
         <span>© 3RD WORLD</span>
       </div>
     </footer>
