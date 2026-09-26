@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import {verifyTotp} from "@/lib/auth/totp";
+import {decryptSecret} from "@/lib/security/secrets";
 import {
   ADMIN_COOKIE,
   createAdminSession,
@@ -71,7 +72,13 @@ export async function POST(request: NextRequest) {
         {status:401},
       );
     }
-    if(!user.totp_secret||!verifyTotp(user.totp_secret,body.code)){
+    let totpSecret="";
+    try{
+      totpSecret=user.totp_secret?decryptSecret(user.totp_secret):"";
+    }catch{
+      return NextResponse.json({error:"Admin two-factor configuration is invalid."},{status:500});
+    }
+    if(!totpSecret||!verifyTotp(totpSecret,body.code)){
       await recordAuthAttempt({...rate,scope:"ADMIN",success:false});
       return NextResponse.json({error:"Invalid two-factor code."},{status:401});
     }
