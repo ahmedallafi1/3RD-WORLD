@@ -100,3 +100,14 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-security-notes span{font-size:10px;color:var(--admin-muted)}
 .admin-security-notes strong{font-size:28px;font-weight:400}.admin-security-notes p{color:var(--admin-muted);line-height:1.45}
 @media(max-width:650px){.admin-security-inline,.admin-security-notes,.admin-recovery-codes{grid-template-columns:1fr}}
+
+.admin-media-manager{display:grid;gap:10px;min-width:340px}
+.admin-media-head{display:flex;justify-content:space-between;gap:12px}
+.admin-media-head button,.admin-media-row button{border:0;background:transparent;color:inherit;cursor:pointer;border-bottom:1px solid currentColor;padding:0}
+.admin-media-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-top:1px solid var(--admin-line)}
+.admin-media-row>div{display:grid;gap:3px;min-width:0}.admin-media-row small{color:var(--admin-muted);overflow-wrap:anywhere}
+.admin-media-manager form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--admin-line);padding-top:10px}
+.admin-media-manager form label{display:grid;gap:4px;font-size:9px;color:var(--admin-muted)}
+.admin-media-manager form input,.admin-media-manager form select{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px;min-width:0}
+.admin-media-manager form .admin-full,.admin-media-manager form .admin-submit,.admin-media-manager form .admin-form-error{grid-column:1/-1}
+@media(max-width:650px){.admin-media-manager{min-width:280px}.admin-media-manager form{grid-template-columns:1fr}}
