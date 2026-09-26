@@ -1,6 +1,6 @@
 import { query, withTransaction } from "@/lib/db";
 import type { PaymentSession } from "@/lib/payments/types";
-import { transitionOrder } from "@/lib/commerce/repositories/orders-db";
+import { markOrderPaidAndAllocate, releaseOrderReservations, transitionOrder } from "@/lib/commerce/repositories/orders-db";
 
 export async function getOrderForPayment(orderId:string){
   const result=await query<{
@@ -142,10 +142,38 @@ export async function markOrderPaidFromPayment(args:{
     status:"SUCCEEDED",
     paymentMethodType:args.paymentMethodType,
   });
-  await transitionOrder({
+  await markOrderPaidAndAllocate({
     orderId:args.orderId,
-    to:"PAID",
-    actorType:"PAYMENT",
     actorId:args.providerPaymentId,
   });
+}
+
+
+export async function failOrCancelPayment(args:{
+  orderId:string;
+  providerPaymentId:string;
+  status:"FAILED"|"CANCELLED";
+  lastError?:string;
+}){
+  await updatePaymentAttemptStatus({
+    providerPaymentId:args.providerPaymentId,
+    status:args.status,
+    lastError:args.lastError,
+  });
+
+  await releaseOrderReservations(
+    args.orderId,
+    args.status==="FAILED"?"payment failed":"payment cancelled",
+  );
+
+  try{
+    await transitionOrder({
+      orderId:args.orderId,
+      to:"CANCELLED",
+      actorType:"PAYMENT",
+      actorId:args.providerPaymentId,
+    });
+  }catch{
+    // Ignore if the order already moved beyond a cancellable state.
+  }
 }
