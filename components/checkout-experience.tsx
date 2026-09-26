@@ -327,6 +327,20 @@ export function CheckoutExperience(){
     setStep("complete");
   }
 
+  async function editDetails(){
+    const orderId=prepared?.order.id;
+    if(orderId){
+      await fetch("/api/commerce/checkout/cancel",{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({orderId}),
+      }).catch(()=>undefined);
+    }
+    setPaymentSession(null);
+    setPrepared(null);
+    setStep("details");
+  }
+
   if(step==="complete"){
     return (
       <main className="checkout-complete">
@@ -391,7 +405,7 @@ export function CheckoutExperience(){
             <legend>PAYMENT</legend>
             <div className="payment-order-ref">
               <span>{prepared.order.number}</span>
-              <button type="button" onClick={()=>setStep("details")}>EDIT DETAILS</button>
+              <button type="button" onClick={()=>void editDetails()}>EDIT DETAILS</button>
             </div>
             <StripePaymentPanel
               session={paymentSession}
