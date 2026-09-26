@@ -1,5 +1,10 @@
 import {query,withTransaction} from "@/lib/db";
 import {hashAccessCode,hashDropSessionToken,newDropSessionToken} from "@/lib/world-engine/security";
+import {
+  dispatchNotificationOutbox,
+  emailDeliveryConfigured,
+  enqueueEmail,
+} from "@/lib/world-engine/notifications";
 import type {DropAccessDecision,DropAccessLevel,DropPhase,DropRecord,PassportTier} from "@/lib/world-engine/types";
 
 export function getDropPhase(drop:DropRecord,now=new Date()):DropPhase{
@@ -229,7 +234,7 @@ export async function redeemDropCode(args:{
   });
 }
 
-export async function redeemWaitlistEmail(args:{
+export async function requestWaitlistEmailAccess(args:{
   drop:DropRecord;
   email:string;
   customerId?:string|null;
@@ -237,11 +242,16 @@ export async function redeemWaitlistEmail(args:{
   if(getDropPhase(args.drop)!=="LIVE"){
     throw new Error("Email access is not open yet.");
   }
+  if(!emailDeliveryConfigured()){
+    throw new Error("Email access delivery is not configured.");
+  }
+
   const email=args.email.trim().toLowerCase();
   const waitlisted=await isWaitlisted(args.drop.id,email);
   if(!waitlisted)throw new Error("This email is not on the access list.");
 
   const rawToken=newDropSessionToken();
+  const expiresAt=new Date(Date.now()+30*60*1000);
   await query(
     `INSERT INTO drop_access_sessions
      (drop_id,token_hash,customer_id,email,access_level,expires_at)
@@ -251,17 +261,69 @@ export async function redeemWaitlistEmail(args:{
       hashDropSessionToken(rawToken),
       args.customerId??null,
       email,
-      sessionExpiry(args.drop),
+      expiresAt,
     ],
   );
+
+  const base=(process.env.PUBLIC_SITE_URL??"http://localhost:3000").replace(/\/$/,"");
+  const url=base+"/api/drops/"+encodeURIComponent(args.drop.slug)+"/verify?token="+encodeURIComponent(rawToken);
+  await enqueueEmail({
+    type:"DROP_LIVE",
+    recipient:email,
+    subject:args.drop.worldCode+" / ACCESS LINK",
+    html:`<!doctype html><html><body style="margin:0;background:#090909;color:#f4f3ef;font-family:Arial,sans-serif"><div style="max-width:640px;margin:auto;padding:48px 24px"><div style="font-weight:800">3RD WORLD</div><h1 style="font-size:52px;line-height:.9;margin:48px 0 20px">ENTER ${args.drop.worldCode}</h1><p>YOUR PRIVATE EMAIL ACCESS LINK EXPIRES IN 30 MINUTES.</p><a href="${url}" style="color:#f4f3ef">ENTER THE WORLD</a></div></body></html>`,
+    dedupeKey:"email-access:"+args.drop.id+":"+email+":"+Date.now(),
+  });
+  await dispatchNotificationOutbox(10);
+
   await query(
     `INSERT INTO access_events
      (drop_id,customer_id,email,event_type,access_level)
-     VALUES($1,$2,$3,'EMAIL_ACCESS','EMAIL')`,
+     VALUES($1,$2,$3,'EMAIL_LINK_SENT','EMAIL')`,
     [args.drop.id,args.customerId??null,email],
   );
 
-  return {token:rawToken,expiresAt:sessionExpiry(args.drop)};
+  return {verificationSent:true};
+}
+
+export async function consumeWaitlistEmailToken(args:{
+  drop:DropRecord;
+  token:string;
+}){
+  return withTransaction(async client=>{
+    const tokenHash=hashDropSessionToken(args.token);
+    const pending=await client.query<{
+      id:string;customer_id:string|null;email:string|null;
+    }>(
+      `SELECT id,customer_id,email
+       FROM drop_access_sessions
+       WHERE drop_id=$1
+         AND token_hash=$2
+         AND access_level='EMAIL'
+         AND expires_at>now()
+       FOR UPDATE`,
+      [args.drop.id,tokenHash],
+    );
+    const row=pending.rows[0];
+    if(!row)throw new Error("Access link is invalid or expired.");
+
+    await client.query("DELETE FROM drop_access_sessions WHERE id=$1",[row.id]);
+    const rawToken=newDropSessionToken();
+    const expiresAt=sessionExpiry(args.drop);
+    await client.query(
+      `INSERT INTO drop_access_sessions
+       (drop_id,token_hash,customer_id,email,access_level,expires_at)
+       VALUES($1,$2,$3,$4,'EMAIL',$5)`,
+      [args.drop.id,hashDropSessionToken(rawToken),row.customer_id,row.email,expiresAt],
+    );
+    await client.query(
+      `INSERT INTO access_events
+       (drop_id,customer_id,email,event_type,access_level)
+       VALUES($1,$2,$3,'EMAIL_VERIFIED','EMAIL')`,
+      [args.drop.id,row.customer_id,row.email],
+    );
+    return {token:rawToken,expiresAt};
+  });
 }
 
 export async function joinAccessList(args:{
@@ -313,4 +375,43 @@ export async function joinAccessList(args:{
   });
 
   return {email};
+}
+
+
+export async function assertAccessAttemptAllowed(fingerprint:string){
+  const limit=Math.max(3,Number(process.env.ACCESS_ATTEMPT_LIMIT??12));
+  const result=await query<{count:string}>(
+    `SELECT count(*)::text AS count
+     FROM access_events
+     WHERE event_type='ACCESS_DENIED'
+       AND payload->>'fingerprint'=$1
+       AND created_at>now()-interval '10 minutes'`,
+    [fingerprint],
+  );
+  if(Number(result.rows[0]?.count??0)>=limit){
+    throw new Error("Too many access attempts. Try again later.");
+  }
+}
+
+export async function recordAccessAttempt(args:{
+  dropId:string;
+  customerId?:string|null;
+  email?:string|null;
+  granted:boolean;
+  accessLevel?:string|null;
+  fingerprint:string;
+}){
+  await query(
+    `INSERT INTO access_events
+     (drop_id,customer_id,email,event_type,access_level,payload)
+     VALUES($1,$2,$3,$4,$5,$6::jsonb)`,
+    [
+      args.dropId,
+      args.customerId??null,
+      args.email?.trim().toLowerCase()??null,
+      args.granted?"ACCESS_GRANTED":"ACCESS_DENIED",
+      args.accessLevel??null,
+      JSON.stringify({fingerprint:args.fingerprint}),
+    ],
+  );
 }
