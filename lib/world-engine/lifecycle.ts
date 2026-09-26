@@ -162,6 +162,22 @@ export async function tickWorldEngine(){
        RETURNING id`,
     );
 
+    const expiredAccess=await client.query(
+      "DELETE FROM drop_access_sessions WHERE expires_at<=now() RETURNING id",
+    );
+    const expiredAdminSessions=await client.query(
+      "DELETE FROM admin_sessions WHERE expires_at<=now() RETURNING id",
+    );
+    const expiredCustomerSessions=await client.query(
+      "DELETE FROM customer_sessions WHERE expires_at<=now() RETURNING id",
+    );
+    const oldAttempts=await client.query(
+      "DELETE FROM auth_attempts WHERE created_at<now()-interval '30 days' RETURNING id",
+    );
+    const oldSecurityEvents=await client.query(
+      "DELETE FROM security_events WHERE created_at<now()-interval '90 days' RETURNING id",
+    );
+
     const result={
       dropsLive:live.rowCount??live.rows.length,
       dropsClosed:closed.rowCount??closed.rows.length,
@@ -170,6 +186,11 @@ export async function tickWorldEngine(){
       worldsClosed:worldsClosed.rowCount??worldsClosed.rows.length,
       earlyRecipients,
       liveRecipients,
+      expiredAccessSessions:expiredAccess.rowCount??expiredAccess.rows.length,
+      expiredAdminSessions:expiredAdminSessions.rowCount??expiredAdminSessions.rows.length,
+      expiredCustomerSessions:expiredCustomerSessions.rowCount??expiredCustomerSessions.rows.length,
+      oldAuthAttemptsRemoved:oldAttempts.rowCount??oldAttempts.rows.length,
+      oldSecurityEventsRemoved:oldSecurityEvents.rowCount??oldSecurityEvents.rows.length,
     };
 
     await client.query(
