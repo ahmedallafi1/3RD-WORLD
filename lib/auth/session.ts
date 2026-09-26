@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { query } from "@/lib/db";
+import {hashSecurityValue} from "@/lib/security/request";
 
 export const ADMIN_COOKIE = "tw_admin_session";
 export const CUSTOMER_COOKIE = "tw_customer_session";
@@ -82,8 +83,9 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     email: string;
     name: string;
     role: AdminRole;
+    user_agent_hash:string|null;
   }>(
-    `SELECT u.id, u.email, u.name, u.role
+    `SELECT u.id, u.email, u.name, u.role, s.user_agent_hash
      FROM admin_sessions s
      JOIN admin_users u ON u.id = s.admin_user_id
      WHERE s.token_hash = $1
@@ -93,7 +95,24 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     [hashToken(token)],
   );
 
-  return result.rows[0] ?? null;
+  const row=result.rows[0];
+  if(!row)return null;
+
+  if(row.user_agent_hash){
+    const headerStore=await headers();
+    const currentHash=hashSecurityValue(headerStore.get("user-agent")||"unknown");
+    if(currentHash!==row.user_agent_hash){
+      await query("DELETE FROM admin_sessions WHERE token_hash=$1",[hashToken(token)]).catch(()=>undefined);
+      return null;
+    }
+  }
+
+  return {
+    id:row.id,
+    email:row.email,
+    name:row.name,
+    role:row.role,
+  };
 }
 
 export async function requireAdminUser(allowed?: AdminRole[]) {
@@ -118,8 +137,9 @@ export async function getCustomerUser(): Promise<CustomerUser | null> {
     first_name: string | null;
     last_name: string | null;
     passport_number: string | null;
+    user_agent_hash:string|null;
   }>(
-    `SELECT c.id, c.email, c.first_name, c.last_name, c.passport_number
+    `SELECT c.id, c.email, c.first_name, c.last_name, c.passport_number, s.user_agent_hash
      FROM customer_sessions s
      JOIN customers c ON c.id = s.customer_id
      WHERE s.token_hash = $1
@@ -131,6 +151,15 @@ export async function getCustomerUser(): Promise<CustomerUser | null> {
 
   const row = result.rows[0];
   if (!row) return null;
+
+  if(row.user_agent_hash){
+    const headerStore=await headers();
+    const currentHash=hashSecurityValue(headerStore.get("user-agent")||"unknown");
+    if(currentHash!==row.user_agent_hash){
+      await query("DELETE FROM customer_sessions WHERE token_hash=$1",[hashToken(token)]).catch(()=>undefined);
+      return null;
+    }
+  }
 
   return {
     id: row.id,
