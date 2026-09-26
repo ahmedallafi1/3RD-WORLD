@@ -322,7 +322,15 @@ export function CheckoutExperience(){
         body:JSON.stringify({orderId:nextPrepared.order.id}),
       });
       const paymentPayload=await paymentResponse.json();
-      if(!paymentResponse.ok)throw new Error(paymentPayload.error??"Unable to start secure payment.");
+      if(!paymentResponse.ok){
+        await fetch("/api/commerce/checkout/cancel",{
+          method:"POST",
+          headers:{"content-type":"application/json"},
+          body:JSON.stringify({orderId:nextPrepared.order.id}),
+        }).catch(()=>undefined);
+        setPrepared(null);
+        throw new Error(paymentPayload.error??"Unable to start secure payment.");
+      }
 
       setPaymentSession(paymentPayload.data as PaymentSession);
       setStep("payment");
