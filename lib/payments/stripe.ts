@@ -33,6 +33,9 @@ export const stripeProvider:PaymentProvider={
     params.set("amount",String(input.amount));
     params.set("currency",input.currency.toLowerCase());
     params.set("automatic_payment_methods[enabled]","true");
+    if(process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION){
+      params.set("payment_method_configuration",process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION);
+    }
     params.set("receipt_email",input.email);
     params.set("metadata[order_id]",input.orderId);
     params.set("metadata[order_number]",input.orderNumber);
