@@ -254,3 +254,5 @@ body:has(.checkout-complete) .site-header{display:none}
 .passport-saved-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line)}
 .passport-saved-grid .product-card{background:var(--black)}
 @media(max-width:620px){.passport-saved-grid{grid-template-columns:1fr}.restock-form>div{grid-template-columns:1fr}.restock-form button{border-left:0;border-top:1px solid var(--line);min-height:44px}}
+
+.error-reset{border:0;background:transparent;color:inherit;cursor:pointer;font:inherit}
