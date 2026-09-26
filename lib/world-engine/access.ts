@@ -130,15 +130,15 @@ export async function evaluateDropAccess(args:{
   if(grant==="PRIVATE"){
     return {phase,granted:true,level:"PRIVATE",reason:"GRANT"};
   }
-  if(grant==="VIP"){
-    return {phase,granted:true,level:"VIP",reason:"GRANT"};
-  }
 
   if(phase==="UPCOMING"){
     return {phase,granted:false,level:null,reason:"TOO_EARLY"};
   }
 
   if(phase==="EARLY"){
+    if(grant==="VIP"){
+      return {phase,granted:true,level:"VIP",reason:"GRANT"};
+    }
     if(grant==="EARLY"){
       return {phase,granted:true,level:"EARLY",reason:"GRANT"};
     }
@@ -153,7 +153,7 @@ export async function evaluateDropAccess(args:{
   }
 
   if(args.drop.accessMode==="EMAIL"){
-    if(args.email&&await isWaitlisted(args.drop.id,args.email)){
+    if(args.customerId&&args.email&&await isWaitlisted(args.drop.id,args.email)){
       return {phase,granted:true,level:"EMAIL",reason:"WAITLIST"};
     }
     return {phase,granted:false,level:null,reason:"EMAIL_REQUIRED"};
