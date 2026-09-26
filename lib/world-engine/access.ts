@@ -4,12 +4,14 @@ import type {DropAccessDecision,DropAccessLevel,DropPhase,DropRecord,PassportTie
 
 export function getDropPhase(drop:DropRecord,now=new Date()):DropPhase{
   if(drop.status==="CLOSED"||drop.status==="ARCHIVED")return "CLOSED";
+  if(drop.status==="DRAFT")return "UPCOMING";
   const nowMs=now.getTime();
   const closes=drop.closesAt?Date.parse(drop.closesAt):null;
   if(closes&&nowMs>=closes)return "CLOSED";
 
   const opens=drop.opensAt?Date.parse(drop.opensAt):null;
-  if(drop.status==="LIVE"||!opens||nowMs>=opens)return "LIVE";
+  if(drop.status==="LIVE")return "LIVE";
+  if(opens&&nowMs>=opens)return "LIVE";
 
   const early=drop.earlyAccessAt?Date.parse(drop.earlyAccessAt):null;
   if(early&&nowMs>=early)return "EARLY";
@@ -232,6 +234,9 @@ export async function redeemWaitlistEmail(args:{
   email:string;
   customerId?:string|null;
 }){
+  if(getDropPhase(args.drop)!=="LIVE"){
+    throw new Error("Email access is not open yet.");
+  }
   const email=args.email.trim().toLowerCase();
   const waitlisted=await isWaitlisted(args.drop.id,email);
   if(!waitlisted)throw new Error("This email is not on the access list.");
