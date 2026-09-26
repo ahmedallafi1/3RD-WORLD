@@ -1,10 +1,17 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getCustomerUser} from "@/lib/auth/session";
 import {joinAccessList} from "@/lib/world-engine/access";
+import {assertActionRateLimit} from "@/lib/security/action-rate-limit";
 
 export async function POST(request:NextRequest){
   if(!process.env.DATABASE_URL){
     return NextResponse.json({ok:true,preview:true});
+  }
+
+  try{
+    await assertActionRateLimit({request,action:"WORLD_ACCESS_JOIN",maxAttempts:8,windowMinutes:15});
+  }catch(error){
+    return NextResponse.json({error:error instanceof Error?error.message:"Too many requests."},{status:429});
   }
 
   const body=await request.json().catch(()=>null) as {email?:string;source?:string}|null;
