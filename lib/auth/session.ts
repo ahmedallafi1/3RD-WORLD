@@ -13,6 +13,7 @@ export type AdminUser = {
   email: string;
   name: string;
   role: AdminRole;
+  mfaEnabled: boolean;
 };
 
 export type CustomerUser = {
@@ -70,6 +71,7 @@ export async function getAdminUser(): Promise<AdminUser | null> {
       email: "preview@3rdworld.local",
       name: "Preview Owner",
       role: "OWNER",
+      mfaEnabled: false,
     };
   }
 
@@ -82,8 +84,9 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     email: string;
     name: string;
     role: AdminRole;
+    totp_enabled: boolean;
   }>(
-    `SELECT u.id, u.email, u.name, u.role
+    `SELECT u.id, u.email, u.name, u.role, u.totp_enabled
      FROM admin_sessions s
      JOIN admin_users u ON u.id = s.admin_user_id
      WHERE s.token_hash = $1
@@ -93,7 +96,14 @@ export async function getAdminUser(): Promise<AdminUser | null> {
     [hashToken(token)],
   );
 
-  return result.rows[0] ?? null;
+  const row=result.rows[0];
+  return row?{
+    id:row.id,
+    email:row.email,
+    name:row.name,
+    role:row.role,
+    mfaEnabled:row.totp_enabled,
+  }:null;
 }
 
 export async function requireAdminUser(allowed?: AdminRole[]) {
