@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCustomerAccount } from "@/lib/commerce/repositories/customers";
 import { createCustomerSession, CUSTOMER_COOKIE } from "@/lib/auth/session";
+import {requestSessionMetadata} from "@/lib/security/request";
 
 export async function POST(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
       firstName: body.firstName,
       lastName: body.lastName,
     });
-    const session = await createCustomerSession(customerId);
+    const session = await createCustomerSession(customerId,requestSessionMetadata(request));
     const response = NextResponse.json({ ok: true, customerId }, { status: 201 });
     response.cookies.set(CUSTOMER_COOKIE, session.token, {
       httpOnly: true,
