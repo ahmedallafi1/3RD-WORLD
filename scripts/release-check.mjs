@@ -10,6 +10,7 @@ const required=[
   "RESEND_API_KEY",
   "NOTIFICATION_FROM_EMAIL",
   "SECURITY_HASH_SECRET",
+  "SECURITY_ENCRYPTION_KEY",
 ];
 
 const missing=required.filter(key=>!process.env[key]);
@@ -23,6 +24,12 @@ if(process.env.PUBLIC_SITE_URL&&!/^https:\/\//i.test(process.env.PUBLIC_SITE_URL
 if((process.env.DROP_ACCESS_SECRET??"").length<32)problems.push("DROP_ACCESS_SECRET should be at least 32 characters.");
 if((process.env.CRON_SECRET??"").length<32)problems.push("CRON_SECRET should be at least 32 characters.");
 if((process.env.SECURITY_HASH_SECRET??"").length<32)problems.push("SECURITY_HASH_SECRET should be at least 32 characters.");
+try{
+  const key=Buffer.from(process.env.SECURITY_ENCRYPTION_KEY??"","base64");
+  if(key.length!==32)problems.push("SECURITY_ENCRYPTION_KEY must decode to exactly 32 bytes.");
+}catch{
+  problems.push("SECURITY_ENCRYPTION_KEY is invalid base64.");
+}
 
 if(missing.length)problems.push("Missing: "+missing.join(", "));
 
