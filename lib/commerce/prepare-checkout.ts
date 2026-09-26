@@ -4,6 +4,8 @@ import { createPendingOrderFromCart } from "@/lib/commerce/repositories/orders-d
 import { quoteCheckout } from "@/lib/commerce/checkout-quotes";
 import { applyCheckoutQuoteToOrder } from "@/lib/commerce/checkout-order";
 import type { ShippingAddress } from "@/lib/shipping/easypost";
+import { getMarketForCountry } from "@/lib/commerce/markets";
+import { resolveVariantPrice } from "@/lib/commerce/pricing";
 
 export type CheckoutLineInput={
   slug:string;
@@ -20,13 +22,19 @@ export async function prepareCheckout(args:{
 }){
   if(!args.lines.length)throw new Error("Checkout requires at least one item.");
 
+  const market=await getMarketForCountry(args.countryCode);
   const location=await query<{id:string}>(
     "SELECT id FROM locations WHERE code='nyc-main' AND active=true LIMIT 1",
   );
   if(!location.rows[0])throw new Error("Fulfillment location is not configured.");
   const locationId=location.rows[0].id;
 
-  const resolved:Array<{variantId:string;quantity:number}>=[];
+  const resolved:Array<{
+    variantId:string;
+    quantity:number;
+    unitPriceAmount:number;
+    currency:string;
+  }>=[];
   for(const line of args.lines){
     if(!Number.isInteger(line.quantity)||line.quantity<=0)throw new Error("Invalid quantity.");
     const variant=await query<{id:string}>(
@@ -41,13 +49,29 @@ export async function prepareCheckout(args:{
       [line.slug,line.size],
     );
     if(!variant.rows[0])throw new Error(`Unavailable item: ${line.slug} / ${line.size}`);
-    resolved.push({variantId:variant.rows[0].id,quantity:line.quantity});
+
+    const price=await resolveVariantPrice({
+      variantId:variant.rows[0].id,
+      marketCode:market.code,
+      marketCurrency:market.currency,
+    });
+    resolved.push({
+      variantId:variant.rows[0].id,
+      quantity:line.quantity,
+      unitPriceAmount:price.amount,
+      currency:price.currency,
+    });
   }
+
+  const currencies=[...new Set(resolved.map(line=>line.currency))];
+  if(currencies.length!==1)throw new Error("Checkout lines resolved to inconsistent currencies.");
+  const currency=currencies[0];
 
   const cart=await createCart({
     email:args.email,
     customerId:args.customerId,
-    currency:"USD",
+    currency,
+    marketCode:market.code,
   });
 
   try{
@@ -58,6 +82,8 @@ export async function prepareCheckout(args:{
         locationId,
         quantity:line.quantity,
         ttlSeconds:15*60,
+        unitPriceAmount:line.unitPriceAmount,
+        currency:line.currency,
       });
     }
 
