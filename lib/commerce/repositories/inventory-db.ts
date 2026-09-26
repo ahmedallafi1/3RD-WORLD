@@ -183,6 +183,7 @@ export async function adjustInventoryTx(args:{
     );
     if(!level.rows[0])throw new InventoryConflictError("Inventory level not found.");
 
+    const beforeAvailable=level.rows[0].on_hand-level.rows[0].reserved;
     const next=level.rows[0].on_hand+args.delta;
     if(next<level.rows[0].reserved||next<0){
       throw new InventoryConflictError("Adjustment would reduce stock below reserved inventory.");
@@ -201,6 +202,49 @@ export async function adjustInventoryTx(args:{
       [args.variantId,args.locationId,args.delta,args.actorId,args.note??null],
     );
 
-    return {onHand:next,reserved:level.rows[0].reserved,available:next-level.rows[0].reserved};
+    const afterAvailable=next-level.rows[0].reserved;
+    if(beforeAvailable<=0&&afterAvailable>0){
+      const product=await client.query<{id:string;slug:string;name:string}>(
+        `SELECT p.id,p.slug,p.name
+         FROM variants v
+         JOIN products p ON p.id=v.product_id
+         WHERE v.id=$1
+         LIMIT 1`,
+        [args.variantId],
+      );
+      const row=product.rows[0];
+      if(row){
+        const subscribers=await client.query<{id:string;email:string}>(
+          `SELECT id,lower(email) AS email
+           FROM access_signups
+           WHERE product_id=$1
+             AND signup_type='RESTOCK'
+             AND status='SUBSCRIBED'`,
+          [row.id],
+        );
+        const base=(process.env.PUBLIC_SITE_URL??"http://localhost:3000").replace(/\/$/,"");
+        for(const subscriber of subscribers.rows){
+          const html=`<!doctype html><html><body style="margin:0;background:#090909;color:#f4f3ef;font-family:Arial,sans-serif"><div style="max-width:640px;margin:auto;padding:48px 24px"><div style="font-weight:800">3RD WORLD</div><h1 style="font-size:48px;line-height:.9;margin:48px 0 20px">${row.name} IS BACK.</h1><p>THE PIECE YOU SAVED FOR RESTOCK IS AVAILABLE AGAIN.</p><a href="${base}/product/${row.slug}" style="color:#f4f3ef">VIEW PIECE</a></div></body></html>`;
+          await client.query(
+            `INSERT INTO notification_outbox
+             (channel,notification_type,recipient,subject,body_html,dedupe_key,status)
+             VALUES('EMAIL','RESTOCK',$1,$2,$3,$4,'PENDING')
+             ON CONFLICT(dedupe_key) DO NOTHING`,
+            [
+              subscriber.email,
+              row.name+" / RESTOCK",
+              html,
+              "restock:"+row.id+":"+subscriber.email+":"+Date.now(),
+            ],
+          );
+          await client.query(
+            "UPDATE access_signups SET status='NOTIFIED',updated_at=now() WHERE id=$1",
+            [subscriber.id],
+          );
+        }
+      }
+    }
+
+    return {onHand:next,reserved:level.rows[0].reserved,available:afterAvailable};
   });
 }

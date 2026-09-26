@@ -26,3 +26,8 @@ export function hashDropSessionToken(token:string){
 export function dropAccessCookieName(slug:string){
   return "tw_drop_"+slug.toLowerCase().replace(/[^a-z0-9_-]/g,"_");
 }
+
+
+export function hashAccessFingerprint(value:string){
+  return createHmac("sha256",accessSecret()).update(value).digest("hex");
+}

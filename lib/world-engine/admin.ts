@@ -114,3 +114,71 @@ export async function createDropAccessCode(args:{
     return {id:inserted.rows[0].id,code:rawCode};
   });
 }
+
+
+export async function listDropProductAssignments(){
+  const result=await query<{drop_id:string;product_id:string;position:number;max_per_customer:number|null}>(
+    `SELECT drop_id,product_id,position,max_per_customer
+     FROM drop_products
+     ORDER BY drop_id,position`,
+  );
+  return result.rows.map(row=>({
+    dropId:row.drop_id,
+    productId:row.product_id,
+    position:row.position,
+    maxPerCustomer:row.max_per_customer,
+  }));
+}
+
+export async function setDropProducts(args:{
+  dropId:string;
+  productIds:string[];
+  actorId:string;
+}){
+  const unique=[...new Set(args.productIds.filter(Boolean))];
+
+  return withTransaction(async client=>{
+    const drop=await client.query<{world_id:string}>(
+      "SELECT world_id FROM drops WHERE id=$1 FOR UPDATE",
+      [args.dropId],
+    );
+    if(!drop.rows[0])throw new Error("Drop not found.");
+
+    if(unique.length){
+      const compatible=await client.query<{id:string}>(
+        `SELECT id FROM products
+         WHERE id=ANY($1::uuid[])
+           AND world_id=$2`,
+        [unique,drop.rows[0].world_id],
+      );
+      if(compatible.rows.length!==unique.length){
+        throw new Error("Every assigned product must belong to the same WORLD as the drop.");
+      }
+    }
+
+    const before=await client.query(
+      "SELECT product_id,position,max_per_customer FROM drop_products WHERE drop_id=$1 ORDER BY position",
+      [args.dropId],
+    );
+
+    await client.query("DELETE FROM drop_products WHERE drop_id=$1",[args.dropId]);
+    for(let index=0;index<unique.length;index++){
+      await client.query(
+        `INSERT INTO drop_products(drop_id,product_id,position)
+         VALUES($1,$2,$3)`,
+        [args.dropId,unique[index],index],
+      );
+    }
+
+    await writeAdminAudit(client,{
+      actorId:args.actorId,
+      action:"DROP_PRODUCTS_SET",
+      resourceType:"drop",
+      resourceId:args.dropId,
+      before:before.rows,
+      after:unique,
+    });
+
+    return {count:unique.length};
+  });
+}

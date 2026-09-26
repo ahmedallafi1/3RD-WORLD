@@ -1,10 +1,12 @@
 import Link from "next/link";
 import {PassportAuth,PassportLogout} from "@/components/passport-auth";
+import {ProductCard} from "@/components/storefront";
 import {getCustomerUser} from "@/lib/auth/session";
 import {
   getCustomerDashboard,
   listCustomerWorldStamps,
 } from "@/lib/commerce/repositories/customers";
+import {listSavedProducts} from "@/lib/world-engine/saved";
 
 export const metadata={title:"Passport"};
 export const dynamic="force-dynamic";
@@ -30,9 +32,10 @@ export default async function PassportPage(){
     );
   }
 
-  const [dashboard,stamps]=await Promise.all([
+  const [dashboard,stamps,saved]=await Promise.all([
     getCustomerDashboard(customer.id),
     listCustomerWorldStamps(customer.id),
+    listSavedProducts(customer.id),
   ]);
   const greeting=customer.firstName?"WELCOME, "+customer.firstName.toUpperCase():"WELCOME BACK";
 
@@ -72,10 +75,20 @@ export default async function PassportPage(){
           )):<p className="muted">YOUR FIRST WORLD STAMP APPEARS AFTER A COMPLETED PURCHASE.</p>}
         </div>
 
+        <div className="passport-saved">
+          <div className="passport-worlds-head">
+            <span>SAVED PIECES</span>
+            <strong>{saved.length}</strong>
+          </div>
+          {saved.length
+            ? <div className="passport-saved-grid">{saved.map((product,index)=><ProductCard product={product} index={index} key={product.slug}/>)}</div>
+            : <p className="muted">SAVE PIECES FROM A PRODUCT PAGE TO KEEP THEM IN YOUR PASSPORT.</p>}
+        </div>
+
         <div className="passport-links">
           <Link href="/drop">WORLD ACCESS</Link>
           <Link href="/archive">ARCHIVE</Link>
-          <button>SAVED PIECES</button>
+          <Link href="/shop">SHOP</Link>
           <button>ADDRESSES</button>
         </div>
         <PassportLogout/>

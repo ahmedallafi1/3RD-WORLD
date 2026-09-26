@@ -44,6 +44,7 @@ export async function POST(request:NextRequest){
       lines:body.lines,
       customerId:customer?.id,
       shippingAddress:address,
+      accessTokens:Object.fromEntries(request.cookies.getAll().map(cookie=>[cookie.name,cookie.value])),
     });
     return NextResponse.json({data},{status:201});
   }catch(error){

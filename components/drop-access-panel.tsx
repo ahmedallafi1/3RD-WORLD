@@ -49,6 +49,11 @@ export function DropAccessPanel({
       setBusy(false);
       return;
     }
+    if(payload.verificationSent){
+      setMessage("CHECK YOUR EMAIL FOR THE PRIVATE ACCESS LINK.");
+      setBusy(false);
+      return;
+    }
     window.location.reload();
   }
 

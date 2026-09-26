@@ -6,6 +6,7 @@ import { applyCheckoutQuoteToOrder } from "@/lib/commerce/checkout-order";
 import type { ShippingAddress } from "@/lib/shipping/easypost";
 import { getMarketForCountry } from "@/lib/commerce/markets";
 import { resolveVariantPrice } from "@/lib/commerce/pricing";
+import {assertProductCheckoutAccess} from "@/lib/world-engine/product-access";
 
 export type CheckoutLineInput={
   slug:string;
@@ -19,6 +20,7 @@ export async function prepareCheckout(args:{
   lines:CheckoutLineInput[];
   customerId?:string;
   shippingAddress:ShippingAddress;
+  accessTokens?:Record<string,string>;
 }){
   if(!args.lines.length)throw new Error("Checkout requires at least one item.");
 
@@ -37,6 +39,14 @@ export async function prepareCheckout(args:{
   }>=[];
   for(const line of args.lines){
     if(!Number.isInteger(line.quantity)||line.quantity<=0)throw new Error("Invalid quantity.");
+
+    await assertProductCheckoutAccess({
+      slug:line.slug,
+      customerId:args.customerId,
+      email:args.email,
+      accessTokens:args.accessTokens,
+    });
+
     const variant=await query<{id:string}>(
       `SELECT v.id
        FROM variants v
