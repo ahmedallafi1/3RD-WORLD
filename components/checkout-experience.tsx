@@ -20,6 +20,17 @@ type Quote={
 type PreparedCheckout={
   order:{id:string;number:string};
   quote:Quote;
+  pricedLines:Array<{
+    id:string;
+    variantId:string;
+    quantity:number;
+    unitPriceAmount:number;
+    currency:string;
+    sku:string;
+    productName:string;
+    size:string;
+    color:string;
+  }>;
 };
 
 type PaymentSession={
@@ -420,12 +431,19 @@ export function CheckoutExperience(){
         <h2>ORDER</h2>
         {cart.lines.length===0
           ? <p className="muted">NO ITEMS YET.</p>
-          : cart.lines.map(line=>(
-            <div className="checkout-line" key={line.product.slug+"-"+line.size}>
-              <span>{line.product.name}<small>{line.size} × {line.quantity}</small></span>
-              <strong>{money(Math.round(line.product.price*line.quantity*100),summaryCurrency)}</strong>
-            </div>
-          ))
+          : prepared?.pricedLines?.length
+            ? prepared.pricedLines.map(line=>(
+              <div className="checkout-line" key={line.id}>
+                <span>{line.productName}<small>{line.size} × {line.quantity}</small></span>
+                <strong>{money(line.unitPriceAmount*line.quantity,line.currency)}</strong>
+              </div>
+            ))
+            : cart.lines.map(line=>(
+              <div className="checkout-line" key={line.product.slug+"-"+line.size}>
+                <span>{line.product.name}<small>{line.size} × {line.quantity}</small></span>
+                <strong>{money(Math.round(line.product.price*line.quantity*100),"USD")}</strong>
+              </div>
+            ))
         }
 
         <div className="checkout-total checkout-breakdown">
