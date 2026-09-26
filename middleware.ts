@@ -28,26 +28,48 @@ function sameOrigin(request:NextRequest){
   }
 }
 
+function requestId(request:NextRequest){
+  const existing=request.headers.get("x-request-id");
+  return existing&&existing.length<=128?existing:crypto.randomUUID();
+}
+
+function nextWithRequestId(request:NextRequest,id:string){
+  const headers=new Headers(request.headers);
+  headers.set("x-request-id",id);
+  const response=NextResponse.next({request:{headers}});
+  response.headers.set("x-request-id",id);
+  response.headers.set("x-content-type-options","nosniff");
+  response.headers.set("referrer-policy","strict-origin-when-cross-origin");
+  return response;
+}
+
 export function middleware(request:NextRequest){
-  if(!isMutationApi(request))return NextResponse.next();
+  const id=requestId(request);
+
+  if(!isMutationApi(request)){
+    return nextWithRequestId(request,id);
+  }
 
   if(exemptPrefixes.some(prefix=>request.nextUrl.pathname.startsWith(prefix))){
-    return NextResponse.next();
+    return nextWithRequestId(request,id);
   }
 
   if(!sameOrigin(request)){
-    return NextResponse.json({error:"Cross-site request blocked."},{status:403});
+    return NextResponse.json(
+      {error:"Cross-site request blocked.",requestId:id},
+      {status:403,headers:{"x-request-id":id}},
+    );
   }
 
   const declared=Number(request.headers.get("content-length")??0);
   if(Number.isFinite(declared)&&declared>512_000){
-    return NextResponse.json({error:"Request body is too large."},{status:413});
+    return NextResponse.json(
+      {error:"Request body is too large.",requestId:id},
+      {status:413,headers:{"x-request-id":id}},
+    );
   }
 
-  const response=NextResponse.next();
-  response.headers.set("x-content-type-options","nosniff");
-  response.headers.set("referrer-policy","strict-origin-when-cross-origin");
-  return response;
+  return nextWithRequestId(request,id);
 }
 
 export const config={
