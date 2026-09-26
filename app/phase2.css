@@ -281,3 +281,6 @@ body:has(.checkout-complete) .site-header{display:none}
 .content-page article p{font-size:15px;line-height:1.7;color:#d2d1cc;white-space:pre-wrap}
 .content-page article small{display:block;margin-top:60px;color:var(--muted);font-size:9px}
 @media(max-width:800px){.content-page{grid-template-columns:1fr;padding-top:100px;gap:44px}}
+
+.checkout-legal-note{font-size:9px;line-height:1.5;color:#777;margin:12px 0 0}
+.checkout-legal-note a,.secure-note a{border-bottom:1px solid currentColor}
