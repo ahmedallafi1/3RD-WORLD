@@ -18,6 +18,10 @@ export async function enqueueEmail(args:{
   );
 }
 
+export function emailDeliveryConfigured(){
+  return Boolean(process.env.RESEND_API_KEY&&process.env.NOTIFICATION_FROM_EMAIL);
+}
+
 async function sendResend(args:{to:string;subject:string;html:string}){
   const key=process.env.RESEND_API_KEY;
   const from=process.env.NOTIFICATION_FROM_EMAIL;
@@ -46,7 +50,7 @@ async function sendResend(args:{to:string;subject:string;html:string}){
 }
 
 export async function dispatchNotificationOutbox(limit=40){
-  if(!process.env.RESEND_API_KEY||!process.env.NOTIFICATION_FROM_EMAIL){
+  if(!emailDeliveryConfigured()){
     return {sent:0,failed:0,skipped:true};
   }
 
