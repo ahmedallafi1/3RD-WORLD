@@ -3,38 +3,34 @@
 ## Goal
 Turn the storefront into a living brand system built around WORLDs, drops, access and Passport identity.
 
-## Build order
-1. Drop access engine + waitlist + access codes
-2. Passport tiers + WORLD stamps
-3. Dynamic WORLD archive and campaign records
-4. Drop product assignment + gated product access
-5. Restock notifications + saved pieces
-6. Early-access / VIP grant administration
-7. Campaign publishing controls
-8. Drop lifecycle automation
-9. Notification delivery adapters
-10. Release-day hardening and load behavior
+## Completed build order
+1. Drop access engine + waitlist + access codes — COMPLETE
+2. Passport tiers + WORLD stamps — COMPLETE
+3. Dynamic WORLD archive and campaign records — COMPLETE
+4. Drop product assignment + gated product access — COMPLETE
+5. Restock notifications + saved pieces — COMPLETE
+6. Early-access / VIP grant administration — COMPLETE
+7. Campaign publishing controls — COMPLETE
+8. Drop lifecycle automation — COMPLETE
+9. Notification delivery adapter + outbox — COMPLETE
+10. Release-day hardening / rate limits / transactional purchase limits — COMPLETE
 
-## First slice
-- WORLD / drop schema extensions
-- drop-product relationship
-- Passport profiles and WORLD stamps
-- access codes, grants and access sessions
-- waitlist / WORLD / restock subscription primitives
-- campaign data model
-- dynamic drop gate
-- email / code / private access flow
-- persistent homepage access signup
-- data-driven Archive
-- data-driven WORLD detail pages
-- Passport tier + stamp UI
-- admin drop creation
-- admin private access-code creation
+## Security model
+- private access codes are keyed hashes
+- session tokens are stored hashed
+- email access requires a one-time magic link
+- private products do not appear in public catalog/search/sitemap
+- checkout independently re-authorizes every release item
+- customer release limits are enforced transactionally
+- code brute-force attempts are rate-limited server-side
+- production fails closed without the private-access secret
+- lifecycle endpoint requires CRON_SECRET in production
 
-## Security principles
-- private access tokens are stored hashed
-- access codes are stored as keyed hashes
-- production fails closed when the access secret is missing
-- access sessions expire
-- code usage can be limited and scheduled
-- private and early access never depend on client-side checks alone
+## Operations model
+- releases are created and scheduled in Admin
+- products are assigned to a WORLD drop in Admin
+- early / VIP / private grants are controlled in Admin
+- campaign records are published in Admin
+- cron advances release state automatically
+- notifications are queued in PostgreSQL and delivered through the configured email provider
+- external credentials remain deployment configuration rather than application source
