@@ -54,6 +54,14 @@ export async function dispatchNotificationOutbox(limit=40){
     return {sent:0,failed:0,skipped:true};
   }
 
+  await query(
+    `UPDATE notification_outbox
+     SET status=CASE WHEN attempts>=5 THEN 'FAILED' ELSE 'PENDING' END,
+         updated_at=now()
+     WHERE status='SENDING'
+       AND updated_at<now()-interval '10 minutes'`,
+  );
+
   const rows=await withTransaction(async client=>{
     const selected=await client.query<{
       id:string;recipient:string;subject:string;body_html:string;
