@@ -22,3 +22,22 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-link{border-bottom:1px solid currentColor;padding-bottom:2px;align-self:flex-start}
 @media(max-width:850px){.admin-layout{grid-template-columns:1fr}.admin-nav{position:static;height:auto;border-right:0;border-bottom:1px solid var(--admin-line);display:grid;grid-template-columns:repeat(5,max-content);overflow:auto}.admin-nav .admin-nav-muted{display:none}.admin-content{padding:28px 16px}.admin-metrics{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.admin-topbar{grid-template-columns:1fr auto}.admin-topbar>span:nth-child(2){display:none}.admin-metrics,.admin-card-grid{grid-template-columns:1fr}}
+
+.admin-user{justify-self:end;display:flex;align-items:center;gap:14px;color:var(--admin-muted)}
+.admin-logout,.admin-create-toggle,.admin-create-head button{border:0;background:transparent;color:inherit;padding:0;cursor:pointer}
+.admin-logout{border-bottom:1px solid currentColor}
+.admin-login-shell{display:grid;place-items:center;padding:24px}
+.admin-login-page{width:min(1100px,100%);min-height:80svh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:60px}
+.admin-login-mark{font-size:clamp(64px,12vw,180px);font-weight:800;letter-spacing:-.08em;line-height:.75}
+.admin-login-page h1{font-size:clamp(56px,8vw,110px);line-height:.78;letter-spacing:-.07em;margin:8px 0 34px}
+.admin-login-form{display:grid;gap:14px}.admin-login-form label,.admin-form-grid label{display:grid;gap:7px;font-size:10px;color:var(--admin-muted)}
+.admin-login-form input,.admin-form-grid input,.admin-form-grid select,.admin-form-grid textarea{width:100%;border:1px solid var(--admin-line);background:transparent;color:var(--admin-ink);padding:13px;outline:none}
+.admin-submit{min-height:50px;border:0;background:var(--admin-ink);color:var(--admin-bg);cursor:pointer;padding:0 18px}
+.admin-submit:disabled{opacity:.5}.admin-form-error{color:#8a1e1e}
+.admin-create-toggle{margin:0 0 24px;border-bottom:1px solid currentColor;padding-bottom:3px}
+.admin-create-form{border:1px solid var(--admin-line);padding:20px;margin-bottom:34px}
+.admin-create-head{display:flex;justify-content:space-between;margin-bottom:20px}
+.admin-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.admin-form-grid .admin-full{grid-column:1/-1}
+@media(max-width:850px){.admin-login-page{grid-template-columns:1fr}.admin-form-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.admin-form-grid{grid-template-columns:1fr}.admin-user>span{display:none}}
