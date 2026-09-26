@@ -37,6 +37,17 @@ export async function createAdminSession(adminUserId: string) {
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
 
+  await query("DELETE FROM admin_sessions WHERE expires_at<=now()");
+  await query(
+    `DELETE FROM admin_sessions
+     WHERE id IN (
+       SELECT id FROM admin_sessions
+       WHERE admin_user_id=$1
+       ORDER BY created_at DESC
+       OFFSET 2
+     )`,
+    [adminUserId],
+  );
   await query(
     `INSERT INTO admin_sessions (admin_user_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
@@ -51,6 +62,17 @@ export async function createCustomerSession(customerId: string) {
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+  await query("DELETE FROM customer_sessions WHERE expires_at<=now()");
+  await query(
+    `DELETE FROM customer_sessions
+     WHERE id IN (
+       SELECT id FROM customer_sessions
+       WHERE customer_id=$1
+       ORDER BY created_at DESC
+       OFFSET 9
+     )`,
+    [customerId],
+  );
   await query(
     `INSERT INTO customer_sessions (customer_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
