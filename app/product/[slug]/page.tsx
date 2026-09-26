@@ -13,7 +13,7 @@ import {isProductSaved} from "@/lib/world-engine/saved";
 export const dynamic="force-dynamic";
 
 export function generateStaticParams(){
-  return fallbackProducts.map(product=>({slug:product.slug}));
+  return fallbackProducts.map(product=>({slug:displayProduct.slug}));
 }
 
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
@@ -28,7 +28,7 @@ export async function generateMetadata({params}:{params:Promise<{slug:string}>})
 
   const product=await getStorefrontProductRaw(slug);
   if(!product)return {};
-  return {title:product.name,description:product.description};
+  return {title:displayProduct.name,description:displayProduct.description};
 }
 
 export default async function ProductPage({params}:{params:Promise<{slug:string}>}){
@@ -40,6 +40,7 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
   ]);
   if(!product)notFound();
 
+  let releaseClosed=false;
   if(process.env.DATABASE_URL){
     const accessTokens=Object.fromEntries(cookieStore.getAll().map(item=>[item.name,item.value]));
     const access=await evaluateProductAccess({
@@ -48,8 +49,11 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
       email:customer?.email,
       accessTokens,
     });
-    if(!access.granted)notFound();
+    releaseClosed=access.decision?.phase==="CLOSED";
+    if(!access.granted&&!releaseClosed)notFound();
   }
+
+  const displayProduct=releaseClosed?{...product,status:"SOLD OUT" as const}:product;
 
   const saved=customer&&process.env.DATABASE_URL
     ? await isProductSaved(customer.id,slug)
@@ -59,7 +63,7 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
     <main className="product-page">
       <section className="product-gallery">
         {["FRONT","BACK","DETAIL","ON BODY"].map((label,index)=>(
-          <div className={"product-gallery-frame tone-"+product.tone} key={label}>
+          <div className={"product-gallery-frame tone-"+displayProduct.tone} key={label}>
             <span>{label}</span>
             <strong>{String(index+1).padStart(2,"0")}</strong>
             <i className="product-silhouette large" aria-hidden="true"/>
@@ -69,29 +73,29 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
 
       <aside className="product-panel">
         <div>
-          <span className="eyebrow">{product.world}</span>
-          <h1>{product.name}</h1>
-          <p className="product-price">{formatMoney(product.price)}</p>
-          <p className="product-color">{product.color}</p>
-          {product.status&&<p className="pdp-status">{product.status}</p>}
+          <span className="eyebrow">{displayProduct.world}</span>
+          <h1>{displayProduct.name}</h1>
+          <p className="product-price">{formatMoney(displayProduct.price)}</p>
+          <p className="product-color">{displayProduct.color}</p>
+          {displayProduct.status&&<p className="pdp-status">{displayProduct.status}</p>}
         </div>
 
         <SavePieceButton
-          slug={product.slug}
+          slug={displayProduct.slug}
           signedIn={Boolean(customer)}
           initialSaved={Boolean(saved)}
         />
 
         <AddToBag product={product}/>
 
-        {product.status==="SOLD OUT"&&(
-          <RestockForm slug={product.slug} defaultEmail={customer?.email??""}/>
+        {displayProduct.status==="SOLD OUT"&&(
+          <RestockForm slug={displayProduct.slug} defaultEmail={customer?.email??""}/>
         )}
 
         <div className="details-list">
-          <details open><summary>DETAILS</summary><p>{product.description}</p></details>
-          <details><summary>FIT</summary><p>{product.fit}</p></details>
-          <details><summary>MATERIAL</summary><p>{product.material}</p></details>
+          <details open><summary>DETAILS</summary><p>{displayProduct.description}</p></details>
+          <details><summary>FIT</summary><p>{displayProduct.fit}</p></details>
+          <details><summary>MATERIAL</summary><p>{displayProduct.material}</p></details>
           <details><summary>SIZE GUIDE</summary><p>Final garment measurements will be connected before launch.</p></details>
           <details><summary>DELIVERY</summary><p>Delivery options are calculated at checkout.</p></details>
           <details><summary>RETURNS</summary><p>Return policy will be configured before launch.</p></details>
