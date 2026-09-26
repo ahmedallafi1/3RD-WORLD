@@ -65,67 +65,71 @@ export async function refundOrder(args:{
       paymentIntentId:payment.rows[0].provider_payment_id,
       amount,
       grandTotal,
-      remainingBefore:remaining,
     };
   });
 
+  let providerRefund:{id:string;status:string;amount:number;currency:string};
   try{
-    const providerRefund=await createStripeRefund({
+    providerRefund=await createStripeRefund({
       paymentIntentId:prepared.paymentIntentId,
       amount:prepared.amount,
       orderId:args.orderId,
       reason:args.reason,
     });
+  }catch(error){
+    await query("UPDATE refunds SET status='FAILED' WHERE id=$1",[prepared.refundId]);
+    throw error;
+  }
 
-    const succeeded=providerRefund.status==="succeeded";
-    await query(
-      `UPDATE refunds
-       SET status=$2,provider_ref=$3
-       WHERE id=$1`,
-      [
-        prepared.refundId,
-        succeeded?"SUCCEEDED":"PENDING",
-        providerRefund.id||null,
-      ],
+  const succeeded=providerRefund.status==="succeeded";
+  await query(
+    `UPDATE refunds
+     SET status=$2,provider_ref=$3
+     WHERE id=$1`,
+    [
+      prepared.refundId,
+      succeeded?"SUCCEEDED":"PENDING",
+      providerRefund.id||null,
+    ],
+  );
+
+  let taxReversalWarning:string|null=null;
+  if(succeeded){
+    const total=await query<{total:string}>(
+      `SELECT COALESCE(sum(amount),0)::text AS total
+       FROM refunds WHERE order_id=$1 AND status='SUCCEEDED'`,
+      [args.orderId],
     );
+    const refunded=Number(total.rows[0]?.total??0);
+    const full=refunded>=prepared.grandTotal;
 
-    if(succeeded){
-      const total=await query<{total:string}>(
-        `SELECT COALESCE(sum(amount),0)::text AS total
-         FROM refunds WHERE order_id=$1 AND status='SUCCEEDED'`,
-        [args.orderId],
-      );
-      const refunded=Number(total.rows[0]?.total??0);
-      const full=refunded>=prepared.grandTotal;
-      await transitionOrder({
-        orderId:args.orderId,
-        to:full?"REFUNDED":"PARTIALLY_REFUNDED",
-        actorType:"ADMIN",
-        actorId:args.actorId,
-      });
+    await transitionOrder({
+      orderId:args.orderId,
+      to:full?"REFUNDED":"PARTIALLY_REFUNDED",
+      actorType:"ADMIN",
+      actorId:args.actorId,
+    });
+
+    try{
       await reverseOrderTax({
         orderId:args.orderId,
         refundId:prepared.refundId,
         refundAmount:prepared.amount,
         full,
       });
+    }catch(error){
+      taxReversalWarning=error instanceof Error?error.message:"Tax reversal needs review.";
     }
-
-    return {
-      id:prepared.refundId,
-      providerRefundId:providerRefund.id,
-      status:providerRefund.status,
-      amount:prepared.amount,
-    };
-  }catch(error){
-    await query(
-      `UPDATE refunds SET status='FAILED' WHERE id=$1`,
-      [prepared.refundId],
-    );
-    throw error;
   }
-}
 
+  return {
+    id:prepared.refundId,
+    providerRefundId:providerRefund.id,
+    status:providerRefund.status,
+    amount:prepared.amount,
+    taxReversalWarning,
+  };
+}
 
 export async function syncStripeRefundFromWebhook(args:{
   providerRefundId:string;
