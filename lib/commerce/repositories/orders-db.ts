@@ -167,8 +167,8 @@ export async function markOrderPaidAndAllocate(args:{
   actorId:string;
 }){
   return withTransaction(async client=>{
-    const order=await client.query<{status:OrderStatus}>(
-      "SELECT status FROM orders WHERE id=$1 FOR UPDATE",
+    const order=await client.query<{status:OrderStatus;customer_id:string|null}>(
+      "SELECT status,customer_id FROM orders WHERE id=$1 FOR UPDATE",
       [args.orderId],
     );
     if(!order.rows[0])throw new Error("Order not found.");
@@ -253,6 +253,25 @@ export async function markOrderPaidAndAllocate(args:{
        VALUES($1,'INVENTORY_ALLOCATED','PAID','ALLOCATED','PAYMENT',$2)`,
       [args.orderId,args.actorId],
     );
+
+    if(order.rows[0].customer_id){
+      await client.query(
+        `INSERT INTO passport_profiles(customer_id,tier)
+         VALUES($1,'MEMBER')
+         ON CONFLICT(customer_id) DO NOTHING`,
+        [order.rows[0].customer_id],
+      );
+      await client.query(
+        `INSERT INTO passport_world_stamps(customer_id,world_id,source)
+         SELECT DISTINCT $2,p.world_id,'ORDER'
+         FROM order_lines ol
+         JOIN variants v ON v.id=ol.variant_id
+         JOIN products p ON p.id=v.product_id
+         WHERE ol.order_id=$1 AND p.world_id IS NOT NULL
+         ON CONFLICT(customer_id,world_id) DO NOTHING`,
+        [args.orderId,order.rows[0].customer_id],
+      );
+    }
 
     return {status:"ALLOCATED" as const};
   });

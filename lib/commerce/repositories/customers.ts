@@ -1,5 +1,6 @@
 import { withTransaction, query } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import type {PassportTier} from "@/lib/world-engine/types";
 
 export async function createCustomerAccount(args: {
   email: string;
@@ -26,6 +27,12 @@ export async function createCustomerAccount(args: {
       "INSERT INTO customer_credentials (customer_id, password_hash) VALUES ($1,$2)",
       [customer.rows[0].id, passwordHash],
     );
+    await client.query(
+      `INSERT INTO passport_profiles(customer_id,tier)
+       VALUES($1,'MEMBER')
+       ON CONFLICT(customer_id) DO NOTHING`,
+      [customer.rows[0].id],
+    );
 
     return customer.rows[0].id;
   });
@@ -47,7 +54,7 @@ export async function authenticateCustomer(emailInput: string, password: string)
 }
 
 export async function getCustomerDashboard(customerId: string) {
-  const [orders, credit] = await Promise.all([
+  const [orders, credit, passport, worlds] = await Promise.all([
     query<{ count: string; total: string }>(
       `SELECT count(*)::text AS count,
               COALESCE(sum(grand_total_amount),0)::text AS total
@@ -61,11 +68,53 @@ export async function getCustomerDashboard(customerId: string) {
        WHERE customer_id = $1 AND currency = 'USD'`,
       [customerId],
     ),
+    query<{tier:PassportTier;joined_at:Date}>(
+      `SELECT tier,joined_at
+       FROM passport_profiles
+       WHERE customer_id=$1
+       LIMIT 1`,
+      [customerId],
+    ),
+    query<{count:string}>(
+      `SELECT count(*)::text AS count
+       FROM passport_world_stamps
+       WHERE customer_id=$1`,
+      [customerId],
+    ),
   ]);
 
   return {
     orderCount: Number(orders.rows[0]?.count ?? 0),
     lifetimeSpendAmount: Number(orders.rows[0]?.total ?? 0),
     storeCreditAmount: Number(credit.rows[0]?.total ?? 0),
+    passportTier: passport.rows[0]?.tier??"MEMBER",
+    passportJoinedAt: passport.rows[0]?.joined_at?.toISOString()??null,
+    worldStampCount: Number(worlds.rows[0]?.count??0),
   };
+}
+
+export async function listCustomerWorldStamps(customerId:string){
+  const result=await query<{
+    code:string;
+    slug:string;
+    title:string;
+    year:number|null;
+    stamped_at:Date;
+    source:string;
+  }>(
+    `SELECT w.code,w.slug,w.title,w.year,s.stamped_at,s.source
+     FROM passport_world_stamps s
+     JOIN worlds w ON w.id=s.world_id
+     WHERE s.customer_id=$1
+     ORDER BY s.stamped_at DESC`,
+    [customerId],
+  );
+  return result.rows.map(row=>({
+    code:row.code,
+    slug:row.slug,
+    title:row.title,
+    year:row.year,
+    stampedAt:row.stamped_at.toISOString(),
+    source:row.source,
+  }));
 }

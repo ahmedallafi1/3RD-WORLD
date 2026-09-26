@@ -63,3 +63,10 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-market-form label{display:grid;gap:4px;font-size:9px;color:var(--admin-muted)}
 .admin-market-form input,.admin-market-form select{width:100%;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
 .admin-market-form>div{display:flex;gap:10px}.admin-market-form small{color:#8a1e1e}
+
+.admin-checkbox{display:flex!important;align-items:center;gap:8px!important;align-self:end;padding:12px 0}
+.admin-checkbox input{width:auto!important}
+.admin-code-form{display:grid;gap:7px;min-width:220px}
+.admin-code-form input{width:100%;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
+.admin-code-form>div{display:flex;gap:10px}.admin-code-form small{color:#8a1e1e}
+.admin-created-code{font-size:14px;letter-spacing:.06em;border:1px solid var(--admin-ink);padding:8px}
