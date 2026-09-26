@@ -98,6 +98,15 @@ export async function createPendingOrderFromCart(args:{
            AND ol.variant_id=$2
            AND o.status NOT IN ('CANCELLED','REFUNDED')
            AND (
+             o.status<>'PENDING_PAYMENT'
+             OR EXISTS (
+               SELECT 1 FROM inventory_reservations ir
+               WHERE ir.order_id=o.id
+                 AND ir.status='ACTIVE'
+                 AND ir.expires_at>now()
+             )
+           )
+           AND (
              ($3::uuid IS NOT NULL AND o.customer_id=$3::uuid)
              OR lower(o.email)=lower($4)
            )`,
