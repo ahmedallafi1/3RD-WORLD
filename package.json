@@ -8,6 +8,7 @@
     "start":"next start",
     "typecheck":"tsc --noEmit",
     "security:audit":"npm audit --omit=dev --audit-level=high",
+    "preflight":"node scripts/production-preflight.mjs",
     "db:migrate":"node scripts/db-migrate.mjs",
     "admin:create":"node scripts/create-admin.mjs",
     "db:seed":"node scripts/seed-catalog.mjs"
