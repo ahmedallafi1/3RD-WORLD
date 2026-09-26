@@ -2,7 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {getAdminUser} from "@/lib/auth/session";
 import {createAccessGrant} from "@/lib/world-engine/grants";
 
-const allowed=new Set(["OWNER","ADMIN","CONTENT"]);
+const allowed=new Set(["OWNER","ADMIN"]);
 
 export async function POST(request:NextRequest){
   const user=await getAdminUser();
