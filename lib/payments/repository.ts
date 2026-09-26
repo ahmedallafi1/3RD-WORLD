@@ -161,10 +161,11 @@ export async function failOrCancelPayment(args:{
     lastError:args.lastError,
   });
 
-  await releaseOrderReservations(
-    args.orderId,
-    args.status==="FAILED"?"payment failed":"payment cancelled",
-  );
+  if(args.status==="FAILED"){
+    return;
+  }
+
+  await releaseOrderReservations(args.orderId,"payment cancelled");
 
   try{
     await transitionOrder({
