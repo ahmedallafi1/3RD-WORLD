@@ -31,29 +31,29 @@ export function newSessionToken() {
   return randomBytes(32).toString("base64url");
 }
 
-export async function createAdminSession(adminUserId: string) {
+export async function createAdminSession(adminUserId: string, metadata?: {ipHash?:string;userAgentHash?:string}) {
   const token = newSessionToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000);
 
   await query(
-    `INSERT INTO admin_sessions (admin_user_id, token_hash, expires_at)
-     VALUES ($1, $2, $3)`,
-    [adminUserId, tokenHash, expiresAt],
+    `INSERT INTO admin_sessions (admin_user_id, token_hash, expires_at, ip_hash, user_agent_hash)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [adminUserId, tokenHash, expiresAt, metadata?.ipHash??null, metadata?.userAgentHash??null],
   );
 
   return { token, expiresAt };
 }
 
-export async function createCustomerSession(customerId: string) {
+export async function createCustomerSession(customerId: string, metadata?: {ipHash?:string;userAgentHash?:string}) {
   const token = newSessionToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   await query(
-    `INSERT INTO customer_sessions (customer_id, token_hash, expires_at)
-     VALUES ($1, $2, $3)`,
-    [customerId, tokenHash, expiresAt],
+    `INSERT INTO customer_sessions (customer_id, token_hash, expires_at, ip_hash, user_agent_hash)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [customerId, tokenHash, expiresAt, metadata?.ipHash??null, metadata?.userAgentHash??null],
   );
 
   return { token, expiresAt };
