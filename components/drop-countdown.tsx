@@ -13,13 +13,16 @@ function getRemaining(target:number){
   };
 }
 
-export function DropCountdown(){
-  const configured=process.env.NEXT_PUBLIC_DROP_AT;
+export function DropCountdown({targetAt}:{targetAt?:string|null}){
+  const configured=targetAt??process.env.NEXT_PUBLIC_DROP_AT??process.env.NEXT_PUBLIC_DROP_OPENS_AT;
   const target=useMemo(()=>configured?Date.parse(configured):NaN,[configured]);
   const [remaining,setRemaining]=useState(()=>Number.isFinite(target)?getRemaining(target):null);
 
   useEffect(()=>{
-    if(!Number.isFinite(target))return;
+    if(!Number.isFinite(target)){
+      setRemaining(null);
+      return;
+    }
     const update=()=>setRemaining(getRemaining(target));
     update();
     const timer=window.setInterval(update,1000);
@@ -31,7 +34,7 @@ export function DropCountdown(){
   }
 
   if(remaining.done){
-    return <div className="drop-tba"><strong>WORLD OPEN.</strong><span>THE RELEASE IS LIVE.</span></div>;
+    return <div className="drop-tba"><strong>ACCESS WINDOW OPEN.</strong><span>ENTER THE WORLD.</span></div>;
   }
 
   const values=[remaining.days,remaining.hours,remaining.minutes,remaining.seconds];
