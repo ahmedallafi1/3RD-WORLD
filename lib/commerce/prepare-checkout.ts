@@ -3,6 +3,7 @@ import { createCart, setCartLineQuantity } from "@/lib/commerce/repositories/car
 import { createPendingOrderFromCart } from "@/lib/commerce/repositories/orders-db";
 import { quoteCheckout } from "@/lib/commerce/checkout-quotes";
 import { applyCheckoutQuoteToOrder } from "@/lib/commerce/checkout-order";
+import type { ShippingAddress } from "@/lib/shipping/easypost";
 
 export type CheckoutLineInput={
   slug:string;
@@ -15,7 +16,7 @@ export async function prepareCheckout(args:{
   countryCode:string;
   lines:CheckoutLineInput[];
   customerId?:string;
-  shippingAddress?:Record<string,unknown>;
+  shippingAddress:ShippingAddress;
 }){
   if(!args.lines.length)throw new Error("Checkout requires at least one item.");
 
@@ -63,6 +64,7 @@ export async function prepareCheckout(args:{
     const quote=await quoteCheckout({
       cartId:cart.id,
       countryCode:args.countryCode,
+      shippingAddress:args.shippingAddress,
     });
 
     const order=await createPendingOrderFromCart({
