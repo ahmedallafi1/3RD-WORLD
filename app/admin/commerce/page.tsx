@@ -1,6 +1,12 @@
 import {requireAdminUser} from "@/lib/auth/session";
 import {getCommerceReadiness} from "@/lib/commerce/readiness";
 import {listMarkets} from "@/lib/commerce/markets";
+import {AdminMarketEditor} from "@/components/admin-market-editor";
+
+function money(amount:number|null,currency:string){
+  if(amount===null)return "—";
+  return new Intl.NumberFormat("en-US",{style:"currency",currency}).format(amount/100);
+}
 
 export default async function AdminCommercePage(){
   await requireAdminUser(["OWNER","ADMIN","OPERATIONS"]);
@@ -26,15 +32,16 @@ export default async function AdminCommercePage(){
 
       <div className="admin-section-head"><h2>MARKETS</h2><span>{markets.length} ACTIVE</span></div>
       <table className="admin-table">
-        <thead><tr><th>MARKET</th><th>CURRENCY</th><th>COUNTRIES</th><th>FREE SHIPPING</th><th>STANDARD SHIPPING</th><th>DUTIES</th></tr></thead>
+        <thead><tr><th>MARKET</th><th>CURRENCY</th><th>COUNTRIES</th><th>FREE SHIPPING</th><th>STANDARD SHIPPING</th><th>DUTIES</th><th>ACTION</th></tr></thead>
         <tbody>{markets.map(market=>(
           <tr key={market.code}>
             <td><strong>{market.code}</strong><br/><small>{market.name}</small></td>
             <td>{market.currency}</td>
             <td>{market.countries.join(" / ")}</td>
-            <td>{market.freeShippingThresholdAmount===null?"—":market.freeShippingThresholdAmount}</td>
-            <td>{market.standardShippingAmount}</td>
+            <td>{money(market.freeShippingThresholdAmount,market.currency)}</td>
+            <td>{money(market.standardShippingAmount,market.currency)}</td>
             <td>{market.dutiesMode}</td>
+            <td><AdminMarketEditor market={market}/></td>
           </tr>
         ))}</tbody>
       </table>
