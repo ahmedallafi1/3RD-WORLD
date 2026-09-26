@@ -1,6 +1,7 @@
 import { query, withTransaction } from "@/lib/db";
 import { createStripeRefund } from "@/lib/payments/stripe";
 import { transitionOrder } from "@/lib/commerce/repositories/orders-db";
+import { reverseOrderTax } from "@/lib/tax/refund-tax";
 
 export async function refundOrder(args:{
   orderId:string;
@@ -95,11 +96,18 @@ export async function refundOrder(args:{
         [args.orderId],
       );
       const refunded=Number(total.rows[0]?.total??0);
+      const full=refunded>=prepared.grandTotal;
       await transitionOrder({
         orderId:args.orderId,
-        to:refunded>=prepared.grandTotal?"REFUNDED":"PARTIALLY_REFUNDED",
+        to:full?"REFUNDED":"PARTIALLY_REFUNDED",
         actorType:"ADMIN",
         actorId:args.actorId,
+      });
+      await reverseOrderTax({
+        orderId:args.orderId,
+        refundId:prepared.refundId,
+        refundAmount:prepared.amount,
+        full,
       });
     }
 
@@ -116,4 +124,40 @@ export async function refundOrder(args:{
     );
     throw error;
   }
+}
+
+
+export async function syncStripeRefundFromWebhook(args:{
+  providerRefundId:string;
+  orderId:string;
+  status:string;
+}){
+  const mapped=args.status==="succeeded"?"SUCCEEDED":args.status==="failed"?"FAILED":"PENDING";
+  await query(
+    `UPDATE refunds
+     SET status=$2
+     WHERE payment_provider='stripe' AND provider_ref=$1`,
+    [args.providerRefundId,mapped],
+  );
+
+  if(mapped!=="SUCCEEDED")return;
+
+  const totals=await query<{grand_total:string;refunded:string}>(
+    `SELECT o.grand_total_amount::text AS grand_total,
+            COALESCE(sum(r.amount) FILTER (WHERE r.status='SUCCEEDED'),0)::text AS refunded
+     FROM orders o
+     LEFT JOIN refunds r ON r.order_id=o.id
+     WHERE o.id=$1
+     GROUP BY o.id`,
+    [args.orderId],
+  );
+  const row=totals.rows[0];
+  if(!row)return;
+
+  await transitionOrder({
+    orderId:args.orderId,
+    to:Number(row.refunded)>=Number(row.grand_total)?"REFUNDED":"PARTIALLY_REFUNDED",
+    actorType:"PAYMENT",
+    actorId:args.providerRefundId,
+  });
 }
