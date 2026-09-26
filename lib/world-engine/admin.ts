@@ -99,7 +99,7 @@ export async function createDropAccessCode(args:{
       ],
     );
     await writeAdminAudit(client,{
-      actorId,
+      actorId:args.actorId,
       action:"DROP_ACCESS_CODE_CREATE",
       resourceType:"drop_access_code",
       resourceId:inserted.rows[0].id,
