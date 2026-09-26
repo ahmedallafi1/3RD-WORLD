@@ -407,6 +407,23 @@ export function CheckoutExperience(){
                   <option value="IE">IRELAND</option>
                   <option value="AE">UNITED ARAB EMIRATES</option>
                   <option value="AU">AUSTRALIA</option>
+                  <option value="JP">JAPAN</option>
+                  <option value="SG">SINGAPORE</option>
+                  <option value="CH">SWITZERLAND</option>
+                  <option value="NO">NORWAY</option>
+                  <option value="NZ">NEW ZEALAND</option>
+                  <option value="MX">MEXICO</option>
+                  <option value="BR">BRAZIL</option>
+                  <option value="SA">SAUDI ARABIA</option>
+                  <option value="QA">QATAR</option>
+                  <option value="KW">KUWAIT</option>
+                  <option value="BH">BAHRAIN</option>
+                  <option value="OM">OMAN</option>
+                  <option value="HK">HONG KONG</option>
+                  <option value="KR">SOUTH KOREA</option>
+                  <option value="CN">CHINA</option>
+                  <option value="IN">INDIA</option>
+                  <option value="ZA">SOUTH AFRICA</option>
                 </select>
                 <input name="phone" className="full" autoComplete="tel" placeholder="PHONE"/>
               </div>
