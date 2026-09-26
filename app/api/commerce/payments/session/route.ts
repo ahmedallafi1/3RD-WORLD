@@ -2,6 +2,8 @@ import {NextRequest,NextResponse} from "next/server";
 import {getPaymentProvider} from "@/lib/payments";
 import {getOrderForPayment,recordPaymentSession} from "@/lib/payments/repository";
 import {assertOrderCheckoutReady} from "@/lib/commerce/checkout-readiness";
+import {assertCheckoutToken} from "@/lib/security/checkout-token";
+import {assertRateLimit,requestFingerprint} from "@/lib/security/rate-limit";
 
 export async function POST(request:NextRequest){
   if(!process.env.DATABASE_URL){
@@ -11,10 +13,20 @@ export async function POST(request:NextRequest){
     return NextResponse.json({error:"Payment provider is not configured."},{status:503});
   }
 
-  const body=await request.json().catch(()=>null) as {orderId?:string}|null;
-  if(!body?.orderId)return NextResponse.json({error:"orderId is required."},{status:400});
+  const body=await request.json().catch(()=>null) as {orderId?:string;checkoutToken?:string}|null;
+  if(!body?.orderId||!body.checkoutToken){
+    return NextResponse.json({error:"Checkout authorization is required."},{status:400});
+  }
 
   try{
+    await assertRateLimit({
+      scope:"payment-session",
+      fingerprint:requestFingerprint(request.headers),
+      identity:body.orderId,
+      limit:20,
+      windowSeconds:600,
+    });
+    await assertCheckoutToken(body.orderId,body.checkoutToken);
     await assertOrderCheckoutReady(body.orderId);
     const order=await getOrderForPayment(body.orderId);
     const provider=getPaymentProvider();
