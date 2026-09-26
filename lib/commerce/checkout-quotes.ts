@@ -34,11 +34,18 @@ export async function quoteCheckout(args:{
   if(!cart.rows[0])throw new Error("Cart not found.");
 
   const subtotalAmount=Number(cart.rows[0].subtotal);
+  const sameCurrency=cart.rows[0].currency===market.currency;
+  const freeThreshold=sameCurrency
+    ? market.freeShippingThresholdAmount
+    : Number(process.env.GLOBAL_FREE_SHIPPING_USD ?? 20000);
+  const standardShipping=sameCurrency
+    ? market.standardShippingAmount
+    : Number(process.env.GLOBAL_STANDARD_SHIPPING_USD ?? 2500);
+
   const shippingAmount=
-    market.freeShippingThresholdAmount!==null &&
-    subtotalAmount>=market.freeShippingThresholdAmount
+    freeThreshold!==null && subtotalAmount>=freeThreshold
       ? 0
-      : market.standardShippingAmount;
+      : standardShipping;
 
   // Tax and duties are deliberately zero until a real tax/duties provider is configured.
   // The response explicitly marks those components as NOT_CONFIGURED instead of guessing.
@@ -69,7 +76,7 @@ export async function quoteCheckout(args:{
   return {
     id:inserted.rows[0].id,
     marketCode:market.code,
-    currency:market.currency,
+    currency:cart.rows[0].currency,
     subtotalAmount,
     discountAmount,
     shippingAmount,
