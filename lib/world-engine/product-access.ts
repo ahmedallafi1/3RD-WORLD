@@ -25,10 +25,8 @@ export async function getProductDropGateBySlug(slug:string):Promise<ProductDropG
      JOIN drops d ON d.id=dp.drop_id
      JOIN worlds w ON w.id=d.world_id
      WHERE p.slug=$1
-       AND d.status IN ('DRAFT','SCHEDULED','LIVE')
-       AND (d.closes_at IS NULL OR d.closes_at>now())
-     ORDER BY CASE d.status WHEN 'LIVE' THEN 0 WHEN 'SCHEDULED' THEN 1 ELSE 2 END,
-              COALESCE(d.opens_at,d.created_at) DESC
+       AND d.status IN ('DRAFT','SCHEDULED','LIVE','CLOSED','ARCHIVED')
+     ORDER BY COALESCE(d.opens_at,d.created_at) DESC
      LIMIT 1`,
     [slug],
   );
@@ -78,7 +76,7 @@ export async function evaluateProductAccess(args:{
 
 export async function isProductPubliclyVisible(slug:string){
   const access=await evaluateProductAccess({slug});
-  return access.granted;
+  return access.granted || access.decision?.phase==="CLOSED";
 }
 
 export async function assertProductCheckoutAccess(args:{
