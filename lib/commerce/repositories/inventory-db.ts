@@ -161,3 +161,46 @@ export async function releaseReservationTx(reservationId: string) {
     return true;
   });
 }
+
+
+export async function adjustInventoryTx(args:{
+  variantId:string;
+  locationId:string;
+  delta:number;
+  actorId:string;
+  note?:string;
+}){
+  if(!Number.isInteger(args.delta)||args.delta===0){
+    throw new InventoryConflictError("Adjustment must be a non-zero integer.");
+  }
+
+  return withTransaction(async client=>{
+    const level=await client.query<{on_hand:number;reserved:number}>(
+      `SELECT on_hand,reserved FROM inventory_levels
+       WHERE variant_id=$1 AND location_id=$2
+       FOR UPDATE`,
+      [args.variantId,args.locationId],
+    );
+    if(!level.rows[0])throw new InventoryConflictError("Inventory level not found.");
+
+    const next=level.rows[0].on_hand+args.delta;
+    if(next<level.rows[0].reserved||next<0){
+      throw new InventoryConflictError("Adjustment would reduce stock below reserved inventory.");
+    }
+
+    await client.query(
+      `UPDATE inventory_levels
+       SET on_hand=$3,updated_at=now()
+       WHERE variant_id=$1 AND location_id=$2`,
+      [args.variantId,args.locationId,next],
+    );
+    await client.query(
+      `INSERT INTO inventory_events
+       (variant_id,location_id,event_type,quantity_delta,actor_type,actor_id,note)
+       VALUES($1,$2,'ADJUSTMENT',$3,'ADMIN',$4,$5)`,
+      [args.variantId,args.locationId,args.delta,args.actorId,args.note??null],
+    );
+
+    return {onHand:next,reserved:level.rows[0].reserved,available:next-level.rows[0].reserved};
+  });
+}
