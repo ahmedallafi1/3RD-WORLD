@@ -13,6 +13,7 @@ const links = [
   ["/admin/drops", "DROPS"],
   ["/admin/access", "ACCESS"],
   ["/admin/campaigns", "CAMPAIGNS"],
+  ["/admin/content", "CONTENT"],
   ["/admin/commerce", "COMMERCE"],
   ["/admin/security", "SECURITY"],
   ["/admin/system", "SYSTEM"],
