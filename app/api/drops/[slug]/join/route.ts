@@ -11,6 +11,10 @@ export async function POST(
   const drop=await getDropBySlug(slug);
   if(!drop)return NextResponse.json({error:"Drop not found."},{status:404});
 
+  if(!drop.waitlistEnabled){
+    return NextResponse.json({error:"Waitlist is closed."},{status:403});
+  }
+
   const body=await request.json().catch(()=>null) as {email?:string}|null;
   if(!body?.email)return NextResponse.json({error:"Email is required."},{status:400});
 
