@@ -2,11 +2,14 @@
 
 import {useMemo,useState} from "react";
 import {ProductCard} from "@/components/storefront";
-import {categories,products,type Category} from "@/lib/catalog";
+import {categories,products as fallbackProducts,type Category,type Product} from "@/lib/catalog";
 
-export function ShopExperience(){
+export function ShopExperience({items=fallbackProducts}:{items?:Product[]}){
   const [category,setCategory]=useState<Category>("ALL");
-  const filtered=useMemo(()=>category==="ALL"?products:products.filter(product=>product.category===category),[category]);
+  const filtered=useMemo(
+    ()=>category==="ALL"?items:items.filter(product=>product.category===category),
+    [category,items],
+  );
 
   return (
     <>
