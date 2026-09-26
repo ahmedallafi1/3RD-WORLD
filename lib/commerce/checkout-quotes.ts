@@ -9,6 +9,7 @@ import {
   calculateStripeTax,
   stripeTaxConfigured,
 } from "@/lib/tax/stripe-tax";
+import {convertAmount,fxConfigured} from "@/lib/fx/open-exchange-rates";
 
 export type CheckoutQuote = {
   id?: string;
@@ -118,12 +119,32 @@ export async function quoteCheckout(args:{
     const selected=(compatible.length?compatible:rates)[0];
     if(!selected)throw new Error("No shipping rate is available for this address.");
 
-    shippingAmount=qualifiesForFreeShipping?0:selected.amount;
+    let selectedShippingAmount=selected.amount;
+    let selectedLandedCost=selected.dutiesTaxesFeesAmount;
+    if(selected.currency.toUpperCase()!==currency.toUpperCase()){
+      if(!fxConfigured())throw new Error("Shipping rate currency requires FX configuration.");
+      selectedShippingAmount=(await convertAmount({
+        amount:selected.amount,
+        from:selected.currency,
+        to:currency,
+        applyMargin:false,
+      })).amount;
+      if(selectedLandedCost!==null){
+        selectedLandedCost=(await convertAmount({
+          amount:selectedLandedCost,
+          from:selected.currency,
+          to:currency,
+          applyMargin:false,
+        })).amount;
+      }
+    }
+
+    shippingAmount=qualifiesForFreeShipping?0:selectedShippingAmount;
     shippingService=`${selected.carrier} ${selected.service}`.trim();
     shippingProvider="easypost";
     shippingProviderRef=selected.shipmentId;
     shippingRateId=selected.rateId;
-    landedCostAmount=selected.dutiesTaxesFeesAmount;
+    landedCostAmount=selectedLandedCost;
   }else{
     shippingAmount=qualifiesForFreeShipping?0:standardShipping;
   }
