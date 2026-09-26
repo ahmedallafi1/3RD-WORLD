@@ -11,6 +11,7 @@ import {
   normalizedIdentity,
   requestFingerprint,
 } from "@/lib/security/rate-limit";
+import {createAdminMfaChallenge} from "@/lib/security/admin-mfa";
 
 export async function POST(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
@@ -46,8 +47,9 @@ export async function POST(request: NextRequest) {
     id: string;
     password_hash: string;
     active: boolean;
+    totp_enabled: boolean;
   }>(
-    `SELECT id, password_hash, active
+    `SELECT id, password_hash, active, totp_enabled
      FROM admin_users
      WHERE email = $1
      LIMIT 1`,
@@ -59,8 +61,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
   }
 
+  if(user.totp_enabled){
+    const challenge=await createAdminMfaChallenge(user.id);
+    return NextResponse.json({
+      ok:true,
+      mfaRequired:true,
+      challengeToken:challenge.token,
+    });
+  }
+
   const session = await createAdminSession(user.id);
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true, mfaRequired:false });
   response.cookies.set(ADMIN_COOKIE, session.token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
