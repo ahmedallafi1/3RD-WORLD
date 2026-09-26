@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createCustomerAccount } from "@/lib/commerce/repositories/customers";
 import { createCustomerSession, CUSTOMER_COOKIE } from "@/lib/auth/session";
 import {requestSessionMetadata} from "@/lib/security/request";
+import {assertActionRateLimit} from "@/lib/security/action-rate-limit";
 
 export async function POST(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Database is not configured." }, { status: 503 });
+  }
+
+  try{
+    await assertActionRateLimit({request,action:"REGISTER",maxAttempts:5,windowMinutes:30});
+  }catch(error){
+    return NextResponse.json({error:error instanceof Error?error.message:"Too many requests."},{status:429});
   }
 
   const body = await request.json().catch(() => null) as
