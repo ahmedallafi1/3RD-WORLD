@@ -9,13 +9,16 @@ function requireStripeSecret(){
   return secret;
 }
 
-export async function stripePost(path:string,params:URLSearchParams){
+export async function stripePost(path:string,params:URLSearchParams,idempotencyKey?:string){
+  const headers:Record<string,string>={
+    authorization:`Bearer ${requireStripeSecret()}`,
+    "content-type":"application/x-www-form-urlencoded",
+  };
+  if(idempotencyKey)headers["idempotency-key"]=idempotencyKey;
+
   const response=await fetch(STRIPE_API+path,{
     method:"POST",
-    headers:{
-      authorization:`Bearer ${requireStripeSecret()}`,
-      "content-type":"application/x-www-form-urlencoded",
-    },
+    headers,
     body:params.toString(),
     cache:"no-store",
   });
@@ -40,7 +43,7 @@ export const stripeProvider:PaymentProvider={
     params.set("metadata[order_id]",input.orderId);
     params.set("metadata[order_number]",input.orderNumber);
 
-    const payload=await stripePost("/payment_intents",params);
+    const payload=await stripePost("/payment_intents",params,"payment-session:"+input.orderId);
     const id=String(payload.id??"");
     const clientSecret=String(payload.client_secret??"");
     const status=String(payload.status??"unknown");
@@ -103,7 +106,8 @@ export async function createStripeRefund(args:{
   params.set("metadata[order_id]",args.orderId);
   if(args.reason)params.set("metadata[reason]",args.reason);
 
-  const payload=await stripePost("/refunds",params);
+  const key="refund:"+args.orderId+":"+String(args.amount??"full");
+  const payload=await stripePost("/refunds",params,key);
   return {
     id:String(payload.id??""),
     status:String(payload.status??"pending"),
