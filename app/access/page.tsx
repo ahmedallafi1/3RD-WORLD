@@ -15,7 +15,7 @@ function getRemaining() {
 }
 
 export default function AccessPage() {
-  const [remaining, setRemaining] = useState(getRemaining);
+  const [remaining, setRemaining] = useState({ d: 0, h: 0, m: 0, s: 0 });
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
