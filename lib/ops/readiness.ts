@@ -1,4 +1,5 @@
 import {isDatabaseConfigured,query} from "@/lib/db";
+import {listPublishedContentPages} from "@/lib/content/pages";
 
 export type ReadinessItem={
   key:string;
@@ -18,8 +19,20 @@ export async function getProductionReadiness(){
     }
   }
 
+  let corePoliciesReady=false;
+  if(databaseReady){
+    try{
+      const published=await listPublishedContentPages();
+      const required=new Set(["shipping","returns","privacy","terms"]);
+      corePoliciesReady=[...required].every(slug=>published.some(page=>page.slug===slug&&page.body.trim()));
+    }catch{
+      corePoliciesReady=false;
+    }
+  }
+
   const items:ReadinessItem[]=[
     {key:"DATABASE",ready:databaseReady,required:true,detail:databaseReady?"CONNECTED":"NOT READY"},
+    {key:"POLICIES",ready:corePoliciesReady,required:true,detail:corePoliciesReady?"PUBLISHED":"SHIPPING / RETURNS / PRIVACY / TERMS"},
     {key:"PUBLIC URL",ready:Boolean(process.env.PUBLIC_SITE_URL),required:true,detail:process.env.PUBLIC_SITE_URL?"CONFIGURED":"MISSING"},
     {key:"DROP SECRET",ready:Boolean(process.env.DROP_ACCESS_SECRET),required:true,detail:process.env.DROP_ACCESS_SECRET?"CONFIGURED":"MISSING"},
     {key:"CRON SECRET",ready:Boolean(process.env.CRON_SECRET),required:true,detail:process.env.CRON_SECRET?"CONFIGURED":"MISSING"},
