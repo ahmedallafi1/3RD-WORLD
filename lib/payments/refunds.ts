@@ -135,9 +135,15 @@ export async function syncStripeRefundFromWebhook(args:{
   const mapped=args.status==="succeeded"?"SUCCEEDED":args.status==="failed"?"FAILED":"PENDING";
   await query(
     `UPDATE refunds
-     SET status=$2
-     WHERE payment_provider='stripe' AND provider_ref=$1`,
-    [args.providerRefundId,mapped],
+     SET status=$2,provider_ref=COALESCE(provider_ref,$1)
+     WHERE id=(
+       SELECT id FROM refunds
+       WHERE payment_provider='stripe'
+         AND (provider_ref=$1 OR (order_id=$3 AND provider_ref IS NULL AND status='PENDING'))
+       ORDER BY created_at DESC
+       LIMIT 1
+     )`,
+    [args.providerRefundId,mapped,args.orderId],
   );
 
   if(mapped!=="SUCCEEDED")return;
