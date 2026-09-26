@@ -118,3 +118,6 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-content-editor textarea{line-height:1.5;resize:vertical}
 .admin-content-editor>small{color:var(--admin-muted)}
 .admin-content-editor>div{display:flex;gap:12px;align-items:center}
+
+.admin-table-scroll{overflow:auto;max-width:100%}
+.admin-audit-json{display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--admin-muted)}
