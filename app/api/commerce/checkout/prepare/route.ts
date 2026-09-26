@@ -2,7 +2,8 @@ import {NextRequest,NextResponse} from "next/server";
 import {getCustomerUser} from "@/lib/auth/session";
 import {prepareCheckout,type CheckoutLineInput} from "@/lib/commerce/prepare-checkout";
 import type {ShippingAddress} from "@/lib/shipping/easypost";
-import {assertRateLimit,normalizedIdentity,requestFingerprint} from "@/lib/security/rate-limit";
+import {assertRateLimit,requestFingerprint} from "@/lib/security/rate-limit";
+import {normalizeEmail,validateShippingAddress} from "@/lib/security/validation";
 
 export async function POST(request:NextRequest){
   if(!process.env.DATABASE_URL){
@@ -18,19 +19,24 @@ export async function POST(request:NextRequest){
       }
     | null;
   const customer=await getCustomerUser();
-  const email=normalizedIdentity(body?.email??customer?.email);
-  const address=body?.shippingAddress;
+  const email=normalizeEmail(body?.email??customer?.email);
+  let address:ShippingAddress|undefined;
+  try{
+    address=body?.shippingAddress?validateShippingAddress(body.shippingAddress):undefined;
+  }catch(error){
+    return NextResponse.json(
+      {error:error instanceof Error?error.message:"Invalid delivery address."},
+      {status:400},
+    );
+  }
 
   if(
     !email ||
     !body?.countryCode ||
     !Array.isArray(body.lines) ||
     !body.lines.length ||
-    !address?.name ||
-    !address.line1 ||
-    !address.city ||
-    !address.postalCode ||
-    !address.country
+    body.lines.length>30 ||
+    !address
   ){
     return NextResponse.json(
       {error:"Email, items and a complete delivery address are required."},
@@ -49,7 +55,7 @@ export async function POST(request:NextRequest){
 
     const data=await prepareCheckout({
       email,
-      countryCode:body.countryCode,
+      countryCode:body.countryCode.trim().toUpperCase(),
       lines:body.lines,
       customerId:customer?.id,
       shippingAddress:address,
