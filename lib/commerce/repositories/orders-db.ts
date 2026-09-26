@@ -24,13 +24,14 @@ export async function createPendingOrderFromCart(args:{
 
     const lines=await client.query<{
       variant_id:string;
+      product_id:string;
       quantity:number;
       unit_price_amount:string;
       currency:string;
       sku:string;
       title:string;
     }>(
-      `SELECT cl.variant_id,cl.quantity,cl.unit_price_amount,cl.currency,
+      `SELECT cl.variant_id,p.id AS product_id,cl.quantity,cl.unit_price_amount,cl.currency,
               v.sku,p.name || ' / ' || v.size AS title
        FROM cart_lines cl
        JOIN variants v ON v.id=cl.variant_id
@@ -62,6 +63,54 @@ export async function createPendingOrderFromCart(args:{
       if(reserved<line.quantity)throw new Error("Cart is not fully reserved.");
     }
 
+    const dropByVariant=new Map<string,string>();
+    const normalizedEmail=args.email.trim().toLowerCase();
+
+    for(const line of lines.rows){
+      const activeDrop=await client.query<{
+        drop_id:string;
+        limit_value:number;
+      }>(
+        `SELECT d.id AS drop_id,
+                COALESCE(dp.max_per_customer,d.per_variant_limit) AS limit_value
+         FROM drop_products dp
+         JOIN drops d ON d.id=dp.drop_id
+         WHERE dp.product_id=$1
+           AND d.status IN ('SCHEDULED','LIVE')
+           AND (d.closes_at IS NULL OR d.closes_at>now())
+         ORDER BY CASE d.status WHEN 'LIVE' THEN 0 ELSE 1 END,
+                  COALESCE(d.opens_at,d.created_at) DESC
+         LIMIT 1`,
+        [line.product_id],
+      );
+
+      const gate=activeDrop.rows[0];
+      if(!gate)continue;
+
+      const lockKey=(args.customerId??"guest")+":"+normalizedEmail+":"+gate.drop_id+":"+line.variant_id;
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))",[lockKey]);
+
+      const prior=await client.query<{quantity:string}>(
+        `SELECT COALESCE(sum(ol.quantity),0)::text AS quantity
+         FROM order_lines ol
+         JOIN orders o ON o.id=ol.order_id
+         WHERE ol.drop_id=$1
+           AND ol.variant_id=$2
+           AND o.status NOT IN ('CANCELLED','REFUNDED')
+           AND (
+             ($3::uuid IS NOT NULL AND o.customer_id=$3::uuid)
+             OR lower(o.email)=lower($4)
+           )`,
+        [gate.drop_id,line.variant_id,args.customerId??null,normalizedEmail],
+      );
+      const already=Number(prior.rows[0]?.quantity??0);
+      if(already+line.quantity>gate.limit_value){
+        throw new Error(`Release limit exceeded for ${line.title}. Maximum ${gate.limit_value} per customer.`);
+      }
+
+      dropByVariant.set(line.variant_id,gate.drop_id);
+    }
+
     const subtotal=lines.rows.reduce(
       (sum,line)=>sum+Number(line.unit_price_amount)*line.quantity,0
     );
@@ -89,11 +138,12 @@ export async function createPendingOrderFromCart(args:{
     for(const line of lines.rows){
       await client.query(
         `INSERT INTO order_lines
-         (order_id,variant_id,sku,title,quantity,unit_price_amount,total_amount,currency)
-         VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+         (order_id,variant_id,drop_id,sku,title,quantity,unit_price_amount,total_amount,currency)
+         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
         [
           orderId,
           line.variant_id,
+          dropByVariant.get(line.variant_id)??null,
           line.sku,
           line.title,
           line.quantity,
