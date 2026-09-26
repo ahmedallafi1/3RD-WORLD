@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import {cookies} from "next/headers";
 import {notFound} from "next/navigation";
+import Link from "next/link";
 import {AddToBag} from "@/components/storefront";
 import {SavePieceButton} from "@/components/save-piece-button";
 import {RestockForm} from "@/components/restock-form";
@@ -58,9 +59,32 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
     ? await isProductSaved(customer.id,slug)
     : false;
   const media=displayProduct.media??[];
+  const siteUrl=(process.env.PUBLIC_SITE_URL??"https://3rdworld.com").replace(/\/$/,"");
+  const cover=media.find(item=>item.kind==="IMAGE"&&item.role==="COVER")
+    ??media.find(item=>item.kind==="IMAGE");
+  const productSchema={
+    "@context":"https://schema.org",
+    "@type":"Product",
+    name:displayProduct.name,
+    description:displayProduct.description,
+    sku:displayProduct.slug,
+    brand:{"@type":"Brand",name:"3RD WORLD"},
+    ...(cover?{image:[cover.src]}:{}),
+    offers:{
+      "@type":"Offer",
+      url:siteUrl+"/product/"+encodeURIComponent(displayProduct.slug),
+      priceCurrency:"USD",
+      price:displayProduct.price.toFixed(2),
+      availability:displayProduct.status==="SOLD OUT"
+        ?"https://schema.org/OutOfStock"
+        :"https://schema.org/InStock",
+    },
+  };
+  const productSchemaJson=JSON.stringify(productSchema).replace(/</g,"\\u003c");
 
   return (
     <main className="product-page">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{__html:productSchemaJson}}/>
       <section className="product-gallery" aria-label={displayProduct.name+" product media"}>
         {media.length?media.map((item,index)=>(
           <figure className={"product-gallery-frame product-media-frame tone-"+displayProduct.tone} key={item.src+"-"+index}>
@@ -117,9 +141,9 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
           <details open><summary>DETAILS</summary><p>{displayProduct.description}</p></details>
           <details><summary>FIT</summary><p>{displayProduct.fit}</p></details>
           <details><summary>MATERIAL</summary><p>{displayProduct.material}</p></details>
-          <details><summary>SIZE GUIDE</summary><p>Final garment measurements will be connected before launch.</p></details>
-          <details><summary>DELIVERY</summary><p>Delivery options are calculated at checkout.</p></details>
-          <details><summary>RETURNS</summary><p>Return policy will be configured before launch.</p></details>
+          <details><summary>SIZE GUIDE</summary><p><Link className="underlined-link" href="/size-guide">VIEW SIZE GUIDE</Link></p></details>
+          <details><summary>DELIVERY</summary><p>Delivery options are calculated at checkout. <Link className="underlined-link" href="/shipping">SHIPPING DETAILS</Link></p></details>
+          <details><summary>RETURNS</summary><p><Link className="underlined-link" href="/returns">VIEW RETURN POLICY</Link></p></details>
         </div>
       </aside>
     </main>
