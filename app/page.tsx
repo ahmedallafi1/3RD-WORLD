@@ -45,7 +45,7 @@ export default function HomePage() {
           <p>PRIVATE RELEASES / EARLY ACCESS</p>
           <h2>ENTER THE WORLD.</h2>
         </div>
-        <form className="access-form">
+        <form className="access-form" action="/access" method="get">
           <label className="sr-only" htmlFor="access-email">Email</label>
           <input id="access-email" type="email" placeholder="EMAIL ADDRESS" />
           <button type="submit">SUBMIT</button>
