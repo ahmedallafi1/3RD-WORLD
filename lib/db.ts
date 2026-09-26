@@ -9,6 +9,11 @@ export function isDatabaseConfigured() {
   return Boolean(process.env.DATABASE_URL);
 }
 
+function positiveInt(value:string|undefined,fallback:number){
+  const parsed=Number(value);
+  return Number.isInteger(parsed)&&parsed>0?parsed:fallback;
+}
+
 export function getPool() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not configured.");
@@ -17,10 +22,18 @@ export function getPool() {
   if (!global.__thirdWorldPool) {
     global.__thirdWorldPool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      max: Number(process.env.DATABASE_POOL_MAX ?? 10),
+      max: positiveInt(process.env.DATABASE_POOL_MAX,10),
+      connectionTimeoutMillis:positiveInt(process.env.DATABASE_CONNECT_TIMEOUT_MS,5000),
+      idleTimeoutMillis:positiveInt(process.env.DATABASE_IDLE_TIMEOUT_MS,30000),
+      statement_timeout:positiveInt(process.env.DATABASE_STATEMENT_TIMEOUT_MS,15000),
+      query_timeout:positiveInt(process.env.DATABASE_QUERY_TIMEOUT_MS,20000),
+      application_name:"3rd-world",
       ssl:
         process.env.DATABASE_SSL === "true"
-          ? { rejectUnauthorized: false }
+          ? {
+              rejectUnauthorized:
+                process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+            }
           : undefined,
     });
   }
