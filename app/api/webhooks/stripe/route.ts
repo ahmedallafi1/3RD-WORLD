@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {query} from "@/lib/db";
+import {finalizeOrderTax} from "@/lib/tax/order-tax";
 import {verifyStripeWebhook} from "@/lib/payments/stripe";
 import {
   failOrCancelPayment,
@@ -62,6 +63,7 @@ export async function POST(request:NextRequest){
           providerPaymentId,
           paymentMethodType:object?.payment_method_types?.[0],
         });
+        await finalizeOrderTax(orderId);
       }else if(event.type==="payment_intent.processing"){
         await updatePaymentAttemptStatus({
           providerPaymentId,
