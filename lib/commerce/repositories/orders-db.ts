@@ -104,40 +104,14 @@ export async function createPendingOrderFromCart(args:{
       );
     }
 
-    for(const reservation of reservations.rows){
-      await client.query(
-        `SELECT 1 FROM inventory_levels
-         WHERE variant_id=$1 AND location_id=$2
-         FOR UPDATE`,
-        [reservation.variant_id,reservation.location_id],
-      );
-      await client.query(
-        `UPDATE inventory_levels
-         SET on_hand=on_hand-$3,
-             reserved=GREATEST(0,reserved-$3),
-             updated_at=now()
-         WHERE variant_id=$1 AND location_id=$2`,
-        [reservation.variant_id,reservation.location_id,reservation.quantity],
-      );
-      await client.query(
-        `UPDATE inventory_reservations
-         SET status='CONSUMED',updated_at=now()
-         WHERE id=$1`,
-        [reservation.id],
-      );
-      await client.query(
-        `INSERT INTO inventory_events
-         (variant_id,location_id,event_type,quantity_delta,reservation_id,order_id)
-         VALUES($1,$2,'CONSUME',$3,$4,$5)`,
-        [
-          reservation.variant_id,
-          reservation.location_id,
-          -reservation.quantity,
-          reservation.id,
-          orderId,
-        ],
-      );
-    }
+    await client.query(
+      `UPDATE inventory_reservations
+       SET order_id=$2,
+           expires_at=GREATEST(expires_at,now()+interval '15 minutes'),
+           updated_at=now()
+       WHERE cart_id=$1 AND status='ACTIVE'`,
+      [args.cartId,orderId],
+    );
 
     await client.query(
       "UPDATE carts SET status='CONVERTED',updated_at=now() WHERE id=$1",
@@ -167,6 +141,7 @@ export async function transitionOrder(args:{
     );
     if(!current.rows[0])throw new Error("Order not found.");
     const from=current.rows[0].status;
+    if(from===args.to)return {from,to:args.to};
     assertOrderTransition(from,args.to);
 
     await client.query(
@@ -184,6 +159,149 @@ export async function transitionOrder(args:{
       [args.orderId,from,args.to,args.actorType??"SYSTEM",args.actorId??null],
     );
     return {from,to:args.to};
+  });
+}
+
+export async function markOrderPaidAndAllocate(args:{
+  orderId:string;
+  actorId:string;
+}){
+  return withTransaction(async client=>{
+    const order=await client.query<{status:OrderStatus}>(
+      "SELECT status FROM orders WHERE id=$1 FOR UPDATE",
+      [args.orderId],
+    );
+    if(!order.rows[0])throw new Error("Order not found.");
+    if(order.rows[0].status==="ALLOCATED"||order.rows[0].status==="FULFILLING"||order.rows[0].status==="FULFILLED"){
+      return {status:order.rows[0].status};
+    }
+    if(order.rows[0].status!=="PENDING_PAYMENT"&&order.rows[0].status!=="PAID"){
+      throw new Error("Order cannot be allocated from its current status.");
+    }
+
+    const reservations=await client.query<{
+      id:string;variant_id:string;location_id:string;quantity:number;expires_at:Date;
+    }>(
+      `SELECT id,variant_id,location_id,quantity,expires_at
+       FROM inventory_reservations
+       WHERE order_id=$1 AND status='ACTIVE'
+       FOR UPDATE`,
+      [args.orderId],
+    );
+    if(!reservations.rows.length)throw new Error("No active reservations found for order.");
+
+    for(const reservation of reservations.rows){
+      await client.query(
+        `SELECT 1 FROM inventory_levels
+         WHERE variant_id=$1 AND location_id=$2
+         FOR UPDATE`,
+        [reservation.variant_id,reservation.location_id],
+      );
+    }
+
+    for(const reservation of reservations.rows){
+      await client.query(
+        `UPDATE inventory_levels
+         SET on_hand=on_hand-$3,
+             reserved=GREATEST(0,reserved-$3),
+             updated_at=now()
+         WHERE variant_id=$1 AND location_id=$2`,
+        [reservation.variant_id,reservation.location_id,reservation.quantity],
+      );
+      await client.query(
+        `UPDATE inventory_reservations
+         SET status='CONSUMED',updated_at=now()
+         WHERE id=$1`,
+        [reservation.id],
+      );
+      await client.query(
+        `INSERT INTO inventory_events
+         (variant_id,location_id,event_type,quantity_delta,reservation_id,order_id,actor_type,actor_id)
+         VALUES($1,$2,'CONSUME',$3,$4,$5,'PAYMENT',$6)`,
+        [
+          reservation.variant_id,
+          reservation.location_id,
+          -reservation.quantity,
+          reservation.id,
+          args.orderId,
+          args.actorId,
+        ],
+      );
+    }
+
+    const from=order.rows[0].status;
+    if(from==="PENDING_PAYMENT"){
+      await client.query(
+        "UPDATE orders SET status='PAID',placed_at=COALESCE(placed_at,now()),updated_at=now() WHERE id=$1",
+        [args.orderId],
+      );
+      await client.query(
+        `INSERT INTO order_events
+         (order_id,event_type,from_status,to_status,actor_type,actor_id)
+         VALUES($1,'STATUS_CHANGED','PENDING_PAYMENT','PAID','PAYMENT',$2)`,
+        [args.orderId,args.actorId],
+      );
+    }
+
+    await client.query(
+      "UPDATE orders SET status='ALLOCATED',updated_at=now() WHERE id=$1",
+      [args.orderId],
+    );
+    await client.query(
+      `INSERT INTO order_events
+       (order_id,event_type,from_status,to_status,actor_type,actor_id)
+       VALUES($1,'INVENTORY_ALLOCATED','PAID','ALLOCATED','PAYMENT',$2)`,
+      [args.orderId,args.actorId],
+    );
+
+    return {status:"ALLOCATED" as const};
+  });
+}
+
+export async function releaseOrderReservations(orderId:string,reason:string){
+  return withTransaction(async client=>{
+    const reservations=await client.query<{
+      id:string;variant_id:string;location_id:string;quantity:number;
+    }>(
+      `SELECT id,variant_id,location_id,quantity
+       FROM inventory_reservations
+       WHERE order_id=$1 AND status='ACTIVE'
+       FOR UPDATE`,
+      [orderId],
+    );
+
+    for(const reservation of reservations.rows){
+      await client.query(
+        `SELECT 1 FROM inventory_levels
+         WHERE variant_id=$1 AND location_id=$2
+         FOR UPDATE`,
+        [reservation.variant_id,reservation.location_id],
+      );
+      await client.query(
+        `UPDATE inventory_levels
+         SET reserved=GREATEST(0,reserved-$3),updated_at=now()
+         WHERE variant_id=$1 AND location_id=$2`,
+        [reservation.variant_id,reservation.location_id,reservation.quantity],
+      );
+      await client.query(
+        "UPDATE inventory_reservations SET status='RELEASED',updated_at=now() WHERE id=$1",
+        [reservation.id],
+      );
+      await client.query(
+        `INSERT INTO inventory_events
+         (variant_id,location_id,event_type,quantity_delta,reservation_id,order_id,note)
+         VALUES($1,$2,'RELEASE',$3,$4,$5,$6)`,
+        [
+          reservation.variant_id,
+          reservation.location_id,
+          -reservation.quantity,
+          reservation.id,
+          orderId,
+          reason,
+        ],
+      );
+    }
+    return {released:reservations.rows.length};
   });
 }
 
