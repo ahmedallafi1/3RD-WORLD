@@ -14,6 +14,10 @@ export function AdminDropCreateForm({worlds}:{worlds:WorldOption[]}){
     setBusy(true);
     setError("");
     const form=new FormData(event.currentTarget);
+    const iso=(name:string)=>{
+      const value=String(form.get(name)??"").trim();
+      return value?new Date(value).toISOString():null;
+    };
     const response=await fetch("/api/admin/drops",{
       method:"POST",
       headers:{"content-type":"application/json"},
@@ -23,9 +27,9 @@ export function AdminDropCreateForm({worlds}:{worlds:WorldOption[]}){
         slug:String(form.get("slug")??""),
         status:String(form.get("status")??"DRAFT"),
         accessMode:String(form.get("accessMode")??"PUBLIC"),
-        earlyAccessAt:String(form.get("earlyAccessAt")??"")||null,
-        opensAt:String(form.get("opensAt")??"")||null,
-        closesAt:String(form.get("closesAt")??"")||null,
+        earlyAccessAt:iso("earlyAccessAt"),
+        opensAt:iso("opensAt"),
+        closesAt:iso("closesAt"),
         headline:String(form.get("headline")??"")||null,
         subheadline:String(form.get("subheadline")??"")||null,
         waitlistEnabled:form.get("waitlistEnabled")==="on",
