@@ -1,4 +1,4 @@
-export type CurrencyCode = "USD" | "CAD" | "GBP" | "EUR" | "AED" | "AUD";
+export type CurrencyCode = "USD" | "CAD" | "GBP" | "EUR" | "AED" | "AUD" | "JPY" | "SGD";
 
 export type Money = {
   amount: number; // integer minor units, e.g. 14500 = $145.00
