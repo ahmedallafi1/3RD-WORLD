@@ -9,8 +9,11 @@ const scrypt = promisify(scryptCallback);
 const KEY_LENGTH = 64;
 
 export async function hashPassword(password: string) {
-  if (password.length < 10) {
-    throw new Error("Password must be at least 10 characters.");
+  if (password.length < 12) {
+    throw new Error("Password must be at least 12 characters.");
+  }
+  if(password.length>1024){
+    throw new Error("Password is too long.");
   }
 
   const salt = randomBytes(16);
