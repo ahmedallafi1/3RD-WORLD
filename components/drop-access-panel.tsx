@@ -52,8 +52,10 @@ export function DropAccessPanel({
     window.location.reload();
   }
 
-  const canEnter=phase==="LIVE"&&(mode==="EMAIL"||mode==="CODE");
-  const codeMode=mode==="CODE";
+  const canEnter=
+    (phase==="LIVE"&&mode==="EMAIL") ||
+    ((phase==="LIVE"||phase==="EARLY")&&(mode==="CODE"||mode==="PRIVATE"));
+  const codeMode=mode==="CODE"||mode==="PRIVATE";
 
   return (
     <div className="drop-access-panel">
