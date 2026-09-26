@@ -4,15 +4,17 @@ export async function createCart(args?: {
   email?: string;
   currency?: string;
   customerId?: string;
+  marketCode?: string;
 }) {
   const result = await query<{ id: string }>(
-    `INSERT INTO carts (customer_id, email, currency, expires_at)
-     VALUES ($1,$2,$3, now() + interval '24 hours')
+    `INSERT INTO carts (customer_id, email, currency, market_code, expires_at)
+     VALUES ($1,$2,$3,$4, now() + interval '24 hours')
      RETURNING id`,
     [
       args?.customerId ?? null,
       args?.email?.trim().toLowerCase() ?? null,
       args?.currency ?? "USD",
+      args?.marketCode ?? null,
     ],
   );
   return { id: result.rows[0].id };
@@ -74,6 +76,8 @@ export async function setCartLineQuantity(args: {
   locationId: string;
   quantity: number;
   ttlSeconds?: number;
+  unitPriceAmount?: number;
+  currency?: string;
 }) {
   if (!Number.isInteger(args.quantity) || args.quantity < 0) {
     throw new Error("Quantity must be a non-negative integer.");
@@ -220,8 +224,8 @@ export async function setCartLineQuantity(args: {
           args.cartId,
           args.variantId,
           args.quantity,
-          Number(variant.rows[0].price_amount),
-          variant.rows[0].currency,
+          args.unitPriceAmount ?? Number(variant.rows[0].price_amount),
+          args.currency ?? variant.rows[0].currency,
         ],
       );
     }

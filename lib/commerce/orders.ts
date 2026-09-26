@@ -9,7 +9,7 @@ const allowedTransitions: Record<OrderStatus, readonly OrderStatus[]> = {
   FULFILLED: ["REFUNDED", "PARTIALLY_REFUNDED"],
   CANCELLED: [],
   REFUNDED: [],
-  PARTIALLY_REFUNDED: ["REFUNDED"],
+  PARTIALLY_REFUNDED: ["FULFILLING", "FULFILLED", "REFUNDED"],
 };
 
 export function canTransitionOrder(from: OrderStatus, to: OrderStatus) {

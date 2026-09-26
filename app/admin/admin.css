@@ -46,3 +46,20 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-inline-form{display:grid;grid-template-columns:90px 90px 140px auto auto;align-items:center;gap:8px;min-width:430px}
 .admin-inline-form input{min-width:0;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
 .admin-inline-form small{grid-column:1/-1;color:#8a1e1e}
+
+.commerce-readiness{grid-template-columns:repeat(4,minmax(0,1fr))}
+.admin-metric small{color:var(--admin-muted);font-size:10px}
+.admin-metric .ready{font-size:24px}.admin-metric .not-ready{font-size:24px;color:#8a1e1e}
+.admin-section-head{display:flex;align-items:end;justify-content:space-between;margin:48px 0 14px}
+.admin-section-head h2{margin:0;font-size:28px;letter-spacing:-.04em}
+.admin-refund-form{display:grid;gap:8px;min-width:190px}
+.admin-refund-form label{display:grid;gap:5px;font-size:9px;color:var(--admin-muted)}
+.admin-refund-form input{width:100%;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
+.admin-refund-form>div{display:flex;gap:10px}.admin-refund-form small{color:#8a1e1e}
+@media(max-width:1050px){.commerce-readiness{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.commerce-readiness{grid-template-columns:1fr}}
+
+.admin-market-form{display:grid;gap:8px;min-width:240px}
+.admin-market-form label{display:grid;gap:4px;font-size:9px;color:var(--admin-muted)}
+.admin-market-form input,.admin-market-form select{width:100%;border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px}
+.admin-market-form>div{display:flex;gap:10px}.admin-market-form small{color:#8a1e1e}

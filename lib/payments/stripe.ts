@@ -9,7 +9,7 @@ function requireStripeSecret(){
   return secret;
 }
 
-async function stripePost(path:string,params:URLSearchParams){
+export async function stripePost(path:string,params:URLSearchParams){
   const response=await fetch(STRIPE_API+path,{
     method:"POST",
     headers:{
@@ -33,6 +33,9 @@ export const stripeProvider:PaymentProvider={
     params.set("amount",String(input.amount));
     params.set("currency",input.currency.toLowerCase());
     params.set("automatic_payment_methods[enabled]","true");
+    if(process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION){
+      params.set("payment_method_configuration",process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION);
+    }
     params.set("receipt_email",input.email);
     params.set("metadata[order_id]",input.orderId);
     params.set("metadata[order_number]",input.orderNumber);
@@ -85,4 +88,26 @@ export function verifyStripeWebhook(args:{
       return false;
     }
   });
+}
+
+
+export async function createStripeRefund(args:{
+  paymentIntentId:string;
+  amount?:number;
+  orderId:string;
+  reason?:string;
+}){
+  const params=new URLSearchParams();
+  params.set("payment_intent",args.paymentIntentId);
+  if(args.amount!==undefined)params.set("amount",String(args.amount));
+  params.set("metadata[order_id]",args.orderId);
+  if(args.reason)params.set("metadata[reason]",args.reason);
+
+  const payload=await stripePost("/refunds",params);
+  return {
+    id:String(payload.id??""),
+    status:String(payload.status??"pending"),
+    amount:Number(payload.amount??args.amount??0),
+    currency:String(payload.currency??""),
+  };
 }

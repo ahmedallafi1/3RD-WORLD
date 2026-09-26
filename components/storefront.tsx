@@ -23,6 +23,7 @@ type CartContextValue={
   increment:(slug:string,size:string)=>void;
   decrement:(slug:string,size:string)=>void;
   remove:(slug:string,size:string)=>void;
+  clear:()=>void;
 };
 
 const CartContext=createContext<CartContextValue|null>(null);
@@ -83,7 +84,8 @@ export function CartProvider({children}:{children:ReactNode}){
       lines,count,subtotal,isOpen,
       open:()=>setIsOpen(true),
       close:()=>setIsOpen(false),
-      add,increment,decrement,remove
+      add,increment,decrement,remove,
+      clear:()=>setLines([])
     }}>
       {children}
     </CartContext.Provider>
