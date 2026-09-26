@@ -6,6 +6,11 @@ import {
   createAdminSession,
   destroyAdminSession,
 } from "@/lib/auth/session";
+import {
+  assertRateLimit,
+  normalizedIdentity,
+  requestFingerprint,
+} from "@/lib/security/rate-limit";
 
 export async function POST(request: NextRequest) {
   if (!process.env.DATABASE_URL) {
@@ -16,10 +21,25 @@ export async function POST(request: NextRequest) {
     | { email?: string; password?: string }
     | null;
 
-  const email = body?.email?.trim().toLowerCase();
+  const email = normalizedIdentity(body?.email);
   const password = body?.password ?? "";
-  if (!email || !password) {
+  if (!email || !password || email.length>320 || password.length>1024) {
     return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
+  }
+
+  try{
+    await assertRateLimit({
+      scope:"admin-login",
+      fingerprint:requestFingerprint(request.headers),
+      identity:email,
+      limit:8,
+      windowSeconds:900,
+    });
+  }catch(error){
+    return NextResponse.json(
+      {error:error instanceof Error?error.message:"Too many attempts."},
+      {status:429,headers:{"Retry-After":"900"}},
+    );
   }
 
   const result = await query<{
@@ -44,7 +64,8 @@ export async function POST(request: NextRequest) {
   response.cookies.set(ADMIN_COOKIE, session.token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
+    priority:"high",
     path: "/",
     expires: session.expiresAt,
   });
@@ -59,7 +80,8 @@ export async function DELETE(request: NextRequest) {
   response.cookies.set(ADMIN_COOKIE, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
+    priority:"high",
     path: "/",
     expires: new Date(0),
   });
