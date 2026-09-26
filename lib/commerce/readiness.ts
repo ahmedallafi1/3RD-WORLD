@@ -12,5 +12,6 @@ export function getCommerceReadiness(){
     {key:"SHIPPING",ready:easyPostConfigured(),detail:easyPostConfigured()?"EASYPOST LIVE RATING":"MARKET FLAT-RATE FALLBACK"},
     {key:"TAX",ready:stripeTaxConfigured(),detail:stripeTaxConfigured()?"STRIPE TAX":"NOT LIVE"},
     {key:"DUTIES",ready:Boolean(process.env.USE_EASYPOST_LANDED_COST==="true"&&process.env.EASYPOST_API_KEY),detail:process.env.USE_EASYPOST_LANDED_COST==="true"?"EASYPOST / ZONOS LANDED COST":"DDU OR NOT LIVE"},
+    {key:"FX",ready:Boolean(process.env.OPEN_EXCHANGE_RATES_APP_ID),detail:process.env.OPEN_EXCHANGE_RATES_APP_ID?"OPEN EXCHANGE RATES":"BASE OR EXPLICIT MARKET PRICES"},
   ];
 }
