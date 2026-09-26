@@ -4,7 +4,7 @@ import {listAccessGrants,listPassportTiers} from "@/lib/world-engine/grants";
 import {AdminAccessGrantForm,AdminPassportTierForm} from "@/components/admin-access-manager";
 
 export default async function AdminAccessPage(){
-  await requireAdminUser(["OWNER","ADMIN","CONTENT"]);
+  await requireAdminUser(["OWNER","ADMIN"]);
   const [drops,grants,tiers]=await Promise.all([
     listDrops(),
     listAccessGrants(),
