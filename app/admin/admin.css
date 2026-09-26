@@ -111,3 +111,10 @@ body:has(.admin-shell) .site-header{display:none}
 .admin-media-manager form input,.admin-media-manager form select{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:8px;min-width:0}
 .admin-media-manager form .admin-full,.admin-media-manager form .admin-submit,.admin-media-manager form .admin-form-error{grid-column:1/-1}
 @media(max-width:650px){.admin-media-manager{min-width:280px}.admin-media-manager form{grid-template-columns:1fr}}
+
+.admin-content-editor{display:grid;gap:10px;min-width:min(620px,70vw)}
+.admin-content-editor label{display:grid;gap:5px;font-size:9px;color:var(--admin-muted)}
+.admin-content-editor input,.admin-content-editor select,.admin-content-editor textarea{border:1px solid var(--admin-line);background:transparent;color:inherit;padding:10px;font:inherit}
+.admin-content-editor textarea{line-height:1.5;resize:vertical}
+.admin-content-editor>small{color:var(--admin-muted)}
+.admin-content-editor>div{display:flex;gap:12px;align-items:center}
