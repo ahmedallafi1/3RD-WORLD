@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {getPaymentProvider} from "@/lib/payments";
 import {getOrderForPayment,recordPaymentSession} from "@/lib/payments/repository";
+import {assertOrderCheckoutReady} from "@/lib/commerce/checkout-readiness";
 
 export async function POST(request:NextRequest){
   if(!process.env.DATABASE_URL){
@@ -14,6 +15,7 @@ export async function POST(request:NextRequest){
   if(!body?.orderId)return NextResponse.json({error:"orderId is required."},{status:400});
 
   try{
+    await assertOrderCheckoutReady(body.orderId);
     const order=await getOrderForPayment(body.orderId);
     const provider=getPaymentProvider();
     const session=await provider.createPaymentSession({
