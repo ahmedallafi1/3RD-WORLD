@@ -57,15 +57,37 @@ export default async function ProductPage({params}:{params:Promise<{slug:string}
   const saved=customer&&process.env.DATABASE_URL
     ? await isProductSaved(customer.id,slug)
     : false;
+  const media=displayProduct.media??[];
 
   return (
     <main className="product-page">
-      <section className="product-gallery">
-        {["FRONT","BACK","DETAIL","ON BODY"].map((label,index)=>(
-          <div className={"product-gallery-frame tone-"+displayProduct.tone} key={label}>
+      <section className="product-gallery" aria-label={displayProduct.name+" product media"}>
+        {media.length?media.map((item,index)=>(
+          <figure className={"product-gallery-frame product-media-frame tone-"+displayProduct.tone} key={item.src+"-"+index}>
+            {item.kind==="VIDEO"?(
+              <video
+                src={item.src}
+                muted
+                loop
+                playsInline
+                autoPlay
+                aria-label={item.alt||displayProduct.name+" video"}
+              />
+            ):(
+              <img
+                src={item.src}
+                alt={item.alt||displayProduct.name+" product view "+(index+1)}
+                loading={index<2?"eager":"lazy"}
+                decoding="async"
+              />
+            )}
+            <figcaption><span>{item.role}</span><strong>{String(index+1).padStart(2,"0")}</strong></figcaption>
+          </figure>
+        )):["FRONT","BACK","DETAIL","ON BODY"].map((label,index)=>(
+          <div className={"product-gallery-frame product-gallery-fallback tone-"+displayProduct.tone} key={label}>
             <span>{label}</span>
             <strong>{String(index+1).padStart(2,"0")}</strong>
-            <i className="product-silhouette large" aria-hidden="true"/>
+            <div className="product-fallback-globe"><span aria-hidden="true">3RD WORLD</span></div>
           </div>
         ))}
       </section>
