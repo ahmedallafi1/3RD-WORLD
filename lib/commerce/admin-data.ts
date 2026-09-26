@@ -54,6 +54,8 @@ export async function getAdminOverview(): Promise<AdminOverview> {
 export async function listInventoryRows() {
   if (!isDatabaseConfigured()) {
     return previewInventory.map((row) => ({
+      variantId: row.variantId,
+      locationId: row.locationId,
       sku: row.variantId.toUpperCase(),
       location: row.locationId.toUpperCase(),
       onHand: row.onHand,
@@ -63,12 +65,14 @@ export async function listInventoryRows() {
   }
 
   const result = await query<{
+    variant_id: string;
+    location_id: string;
     sku: string;
     location: string;
     on_hand: number;
     reserved: number;
   }>(
-    `SELECT v.sku, l.code AS location, i.on_hand, i.reserved
+    `SELECT i.variant_id, i.location_id, v.sku, l.code AS location, i.on_hand, i.reserved
      FROM inventory_levels i
      JOIN variants v ON v.id = i.variant_id
      JOIN locations l ON l.id = i.location_id
@@ -76,6 +80,8 @@ export async function listInventoryRows() {
   );
 
   return result.rows.map((row) => ({
+    variantId: row.variant_id,
+    locationId: row.location_id,
     sku: row.sku,
     location: row.location,
     onHand: row.on_hand,
